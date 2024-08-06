@@ -1,0 +1,11 @@
+node_modules
+Session.vim
+.direnv
+.vercel
+*_templ.go
+*_templ.txt
+.env
+dist
+tmp
+bin
+static/uno.css
