@@ -15,7 +15,7 @@ on:
 jobs:
   lint:
     name: Lint
-    if: ${{ github.repository == 'capytalcode/project-extrovert' }}
+    if: ${{ github.repository == 'loreddev/dislate' }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
