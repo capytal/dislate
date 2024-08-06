@@ -25,6 +25,7 @@
           buildInputs = with pkgs; [
             go
             golangci-lint
+            docker-compose
             (templ system)
           ];
         };

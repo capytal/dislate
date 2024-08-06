@@ -1,0 +1,15 @@
+services:
+  app:
+    build:
+      dockerfile: ./dockerfile
+    container_name: dislate
+    networks:
+      - dislate
+    ports:
+      - 8080:8080
+
+networks:
+  dislate:
+    driver: bridge
+volumes:
+  db-data:
