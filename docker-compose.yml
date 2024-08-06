@@ -1,7 +1,7 @@
 services:
   app:
     build:
-      dockerfile: ./dockerfile
+      dockerfile: ./docker/bot.dockerfile
     container_name: dislate
     networks:
       - dislate
@@ -9,8 +9,40 @@ services:
       - 8080:8080
     env_file: .env
 
+  libretranslate:
+    image: libretranslate/libretranslate
+    container_name: dislate-libretranslate
+    networks:
+      - dislate
+    ports:
+      - "5000:5000"
+    tty: true
+    healthcheck:
+      test: ['CMD-SHELL', './venv/bin/python scripts/healthcheck.py']
+
+  translateer:
+    build:
+      dockerfile: ./docker/translateer.dockerfile
+    container_name: dislate-translateer
+    networks:
+      - dislate
+    ports:
+      - "8999:8999"
+    environment:
+      PUPPETEER_WS_ENDPOINT: "ws://browserless:3000/?--user-data-dir=./tmp/translateer-data"
+      PAGE_COUNT: "5"
+    depends_on:
+      - browserless
+
+  browserless:
+    image: browserless/chrome
+    container_name: dislate-translateer-browserless
+    restart: always
+    networks:
+      - dislate
+    environment:
+      CONNECTION_TIMEOUT: "-1"
+
 networks:
   dislate:
     driver: bridge
-volumes:
-  db-data:
