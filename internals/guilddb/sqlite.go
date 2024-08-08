@@ -87,6 +87,34 @@ func (db *SQLiteDB) MessageInsert(m Message) error {
 	return nil
 }
 
+func (db *SQLiteDB) TranslatedMessages(originID, originChannelID string) ([]Message, error) {
+	return db.selectMessages(`
+		SELECT * FROM guild-v1.messages
+			WHERE "OriginID" = $1 AND "OriginChannelID" = $2
+	`, originID, originChannelID)
+}
+
+func (db *SQLiteDB) TranslatedMessageByLang(originID, originChannelID string, language lang.Language) (Message, error) {
+	return db.selectMessage(`
+		SELECT * FROM guild-v1.messages
+			WHERE "OriginID" = $1 AND "OriginChannelID" = $2 AND "Language" = $3
+	`, originID, originChannelID, language)
+}
+
+func (db *SQLiteDB) selectMessage(query string, args ...any) (Message, error) {
+	var m Message
+	err := db.sql.QueryRow(query, args...).
+		Scan(&m.ID, &m.ChannelID, &m.Language, &m.OriginID, &m.OriginChannelID)
+
+	if errors.Is(err, sql.ErrNoRows) {
+		return m, errors.Join(ErrNoMessages, err)
+	} else if err != nil {
+		return m, errors.Join(ErrInternal, err)
+	}
+
+	return m, nil
+}
+
 func (db *SQLiteDB) selectMessages(query string, args ...any) ([]Message, error) {
 	r, err := db.sql.Query(query, args...)
 
