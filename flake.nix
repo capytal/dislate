@@ -23,6 +23,8 @@
       devShells = forAllSystems (system: pkgs: {
         default = pkgs.mkShell {
           buildInputs = with pkgs; [
+            sqlite
+            sqlitebrowser
             go
             golangci-lint
             docker-compose
