@@ -39,7 +39,6 @@ func main() {
 
 		var w *discordgo.Webhook
 		if wi := slices.IndexFunc(ws, func(w *discordgo.Webhook) bool {
-			log.Printf(w.Name)
 			return w.Name == fmt.Sprintf(USER_WEBHOOK_FORMAT, m.Author.ID)
 		}); wi == -1 {
 			w, err = s.WebhookCreate(
@@ -56,8 +55,9 @@ func main() {
 		}
 
 		_, err = s.WebhookExecute(w.ID, w.Token, true, &discordgo.WebhookParams{
-			Username: m.Author.GlobalName,
-			Content:  m.Content,
+			Username:  m.Author.GlobalName,
+			AvatarURL: m.Author.AvatarURL(""),
+			Content:   m.Content,
 		})
 		if err != nil {
 			log.Printf("ERROR: failed to message using webhook for user %s: %s", m.Author.ID, err)
