@@ -32,4 +32,5 @@ type GuildDB interface {
 
 var ErrNoAffect = errors.New("Not able to affect anything in the database")
 var ErrNoMessages = errors.New("Messages not found in database")
+var ErrNoChannels = errors.New("Channels not found in database")
 var ErrInternal = errors.New("Internal error while trying to use database")

@@ -146,3 +146,26 @@ func (db *SQLiteDB) selectMessages(query string, args ...any) ([]Message, error)
 	}
 	return ms, err
 }
+
+func (db *SQLiteDB) Channel(channelID string) (Channel, error) {
+	return db.selectChannel(`
+		SELECT (ID, Language) FROM guild-v1.channels
+			WHERE "ID" = $1
+	`, channelID)
+}
+
+func (db *SQLiteDB) ChannelInsert(c Channel) error {
+	r, err := db.sql.Exec(`
+		INSERT INTO guild-v1.channels (ID, Language)
+			VALUES ($1, $2)
+	`, c.ID, c.Language)
+
+	if err != nil {
+		return errors.Join(ErrInternal, err)
+	} else if rows, _ := r.RowsAffected(); rows == 0 {
+		return ErrNoAffect
+	}
+
+	return nil
+}
+
