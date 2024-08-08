@@ -169,3 +169,131 @@ func (db *SQLiteDB) ChannelInsert(c Channel) error {
 	return nil
 }
 
+func (db *SQLiteDB) ChannelGroup(channelID string) (ChannelGroup, error) {
+	var g string
+
+	err := db.sql.QueryRow(`
+		SELECT (ID, Language) FROM guild-v1.channels
+			WHERE "Channels" LIKE "%$1%"
+	`, channelID).Scan(&g)
+
+	if errors.Is(err, sql.ErrNoRows) {
+		return ChannelGroup{}, errors.Join(ErrNoChannelGroup, err)
+	} else if err != nil {
+		return ChannelGroup{}, errors.Join(ErrInternal, err)
+	}
+
+	ids := strings.Split(g, ",")
+	if !slices.IsSorted(ids) {
+		return ChannelGroup{}, ErrInvalidChannelGroup
+	}
+	for i, v := range ids {
+		ids[i] = fmt.Sprintf("\"ID\" = %s", v)
+	}
+
+	cs, err := db.selectChannels(fmt.Sprintf(`
+		SELECT (ID, Language) FROM guild-v1.channels
+			WHERE %s
+	`, strings.Join(ids, " OR ")))
+
+	if errors.Is(err, ErrNoChannels) || len(cs) != len(ids) {
+		return ChannelGroup{}, errors.Join(ErrMissingChannels, err)
+	} else if err != nil {
+		return ChannelGroup{}, errors.Join(ErrInternal, err)
+	}
+
+	return cs, nil
+}
+
+func (db *SQLiteDB) ChannelGroupInsert(group ChannelGroup) error {
+	var ids []string
+	for _, c := range group {
+		ids = append(ids, c.ID)
+	}
+	slices.Sort(ids)
+
+	r, err := db.sql.Exec(`
+		INSERT INTO guild-v1.channel-groups (Channels)
+			VALUES ($1)
+	`, strings.Join(ids, ","))
+
+	if err != nil {
+		return errors.Join(ErrInternal, err)
+	} else if rows, _ := r.RowsAffected(); rows == 0 {
+		return ErrNoAffect
+	}
+
+	return nil
+}
+
+func (db *SQLiteDB) ChannelGroupUpdate(group ChannelGroup) error {
+	var ids, idsq []string
+	for _, c := range group {
+		ids = append(ids, c.ID)
+		idsq = append(idsq, "\"ID\" LIKE \""+c.ID+"\"")
+	}
+	slices.Sort(ids)
+
+	r, err := db.sql.Exec(
+		fmt.Sprintf(`
+			UPDATE guild-v1.channel-groups
+				SET Channels = $1
+				WHERE %s
+		`, strings.Join(idsq, " OR ")),
+		strings.Join(ids, ","),
+	)
+
+	if err != nil {
+		return errors.Join(ErrInternal, err)
+	} else if rows, _ := r.RowsAffected(); rows == 0 {
+		return ErrNoAffect
+	}
+
+	return nil
+}
+
+func (db *SQLiteDB) selectChannel(query string, args ...any) (Channel, error) {
+	var c Channel
+	err := db.sql.QueryRow(query, args...).
+		Scan(&c.ID, &c.Language)
+
+	if errors.Is(err, sql.ErrNoRows) {
+		return c, errors.Join(ErrNoMessages, err)
+	} else if err != nil {
+		return c, errors.Join(ErrInternal, err)
+	}
+
+	return c, nil
+}
+
+func (db *SQLiteDB) selectChannels(query string, args ...any) ([]Channel, error) {
+	r, err := db.sql.Query(query, args...)
+
+	if err != nil {
+		return []Channel{}, errors.Join(ErrInternal, err)
+	}
+
+	var cs []Channel
+	for r.Next() {
+		var c Channel
+
+		err = r.Scan(&c.ID, &c.Language)
+		if err != nil {
+			return cs, errors.Join(
+				ErrInternal,
+				fmt.Errorf("Query: %s\nArguments: %v", query, args),
+				err,
+			)
+		}
+
+		cs = append(cs, c)
+	}
+
+	if len(cs) == 0 {
+		return cs, errors.Join(
+			ErrNoChannels,
+			fmt.Errorf("Query: %s\nArguments: %v", query, args),
+		)
+	}
+	return cs, err
+}
