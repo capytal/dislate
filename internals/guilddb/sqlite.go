@@ -73,6 +73,20 @@ func (db *SQLiteDB) Message(channelID, messageID string) (Message, error) {
 	`, channelID, messageID)
 }
 
+func (db *SQLiteDB) MessagesWithOrigin(originID, originChannelID string) ([]Message, error) {
+	return db.selectMessages(`
+		SELECT * FROM guild-v1.messages
+			WHERE "OriginID" = $1 AND "OriginChannelID" = $2
+	`, originID, originChannelID)
+}
+
+func (db *SQLiteDB) MessageWithOriginByLang(originID, originChannelID string, language lang.Language) (Message, error) {
+	return db.selectMessage(`
+		SELECT * FROM guild-v1.messages
+			WHERE "OriginID" = $1 AND "OriginChannelID" = $2 AND "Language" = $3
+	`, originID, originChannelID, language)
+}
+
 func (db *SQLiteDB) MessageInsert(m Message) error {
 	r, err := db.sql.Exec(`
 		INSERT INTO guild-v1.messages (ID, ChannelID, Language, OriginID, OriginChannelID)
@@ -131,20 +145,6 @@ func (db *SQLiteDB) MessageDelete(message Message) error {
 	}
 
 	return nil
-}
-
-func (db *SQLiteDB) MessagesWithOrigin(originID, originChannelID string) ([]Message, error) {
-	return db.selectMessages(`
-		SELECT * FROM guild-v1.messages
-			WHERE "OriginID" = $1 AND "OriginChannelID" = $2
-	`, originID, originChannelID)
-}
-
-func (db *SQLiteDB) MessageWithOriginByLang(originID, originChannelID string, language lang.Language) (Message, error) {
-	return db.selectMessage(`
-		SELECT * FROM guild-v1.messages
-			WHERE "OriginID" = $1 AND "OriginChannelID" = $2 AND "Language" = $3
-	`, originID, originChannelID, language)
 }
 
 func (db *SQLiteDB) selectMessage(query string, args ...any) (Message, error) {
