@@ -87,14 +87,54 @@ func (db *SQLiteDB) MessageInsert(m Message) error {
 	return nil
 }
 
-func (db *SQLiteDB) TranslatedMessages(originID, originChannelID string) ([]Message, error) {
+func (db *SQLiteDB) MessageUpdate(message Message) error {
+	r, err := db.sql.Exec(`
+		UPDATE guild-v1.messages
+			SET Language = $1
+			WHERE "ID" = $2 AND "ChannelID" = $3
+	`, message.Language, message.ID, message.ChannelID)
+
+	if err != nil {
+		return errors.Join(ErrInternal, err)
+	} else if rows, _ := r.RowsAffected(); rows == 0 {
+		return ErrNoAffect
+	}
+
+	return nil
+}
+
+func (db *SQLiteDB) MessageDelete(message Message) error {
+	_, err := db.sql.Exec(`
+		DELETE guild-v1.channels
+			WHERE "OriginID" = $1 AND "OriginChannelID" = $2
+	`, message.ID, message.ChannelID)
+
+	if err != nil {
+		return errors.Join(ErrInternal, err)
+	}
+
+	r, err := db.sql.Exec(`
+		DELETE guild-v1.channels
+			WHERE "ID" = $1 AND "ChannelID" = $2
+	`, message.ID, message.ChannelID)
+
+	if err != nil {
+		return errors.Join(ErrInternal, err)
+	} else if rows, _ := r.RowsAffected(); rows == 0 {
+		return ErrNoAffect
+	}
+
+	return nil
+}
+
+func (db *SQLiteDB) MessagesWithOrigin(originID, originChannelID string) ([]Message, error) {
 	return db.selectMessages(`
 		SELECT * FROM guild-v1.messages
 			WHERE "OriginID" = $1 AND "OriginChannelID" = $2
 	`, originID, originChannelID)
 }
 
-func (db *SQLiteDB) TranslatedMessageByLang(originID, originChannelID string, language lang.Language) (Message, error) {
+func (db *SQLiteDB) MessageWithOriginByLang(originID, originChannelID string, language lang.Language) (Message, error) {
 	return db.selectMessage(`
 		SELECT * FROM guild-v1.messages
 			WHERE "OriginID" = $1 AND "OriginChannelID" = $2 AND "Language" = $3
