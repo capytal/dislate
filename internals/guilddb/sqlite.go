@@ -91,9 +91,14 @@ func (db *SQLiteDB) MessageInsert(m Message) error {
 func (db *SQLiteDB) MessageUpdate(message Message) error {
 	r, err := db.sql.Exec(`
 		UPDATE guild-v1.messages
-			SET Language = $1
-			WHERE "ID" = $2 AND "ChannelID" = $3
-	`, message.Language, message.ID, message.ChannelID)
+			SET Language = $1, OriginChannelID = $2, OriginID = $3
+			WHERE "ID" = $4 AND "ChannelID" = $5
+	`, message.Language,
+		message.OriginChannelID,
+		message.OriginID,
+		message.ID,
+		message.ChannelID,
+	)
 
 	if err != nil {
 		return errors.Join(ErrInternal, err)
