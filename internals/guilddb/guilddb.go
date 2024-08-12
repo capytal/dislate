@@ -31,9 +31,7 @@ type GuildDB interface {
 }
 
 var ErrNoAffect = errors.New("Not able to affect anything in the database")
-var ErrNoMessages = errors.New("Messages not found in database")
-var ErrNoChannels = errors.New("Channels not found in database")
-var ErrNoChannelGroup = errors.New("Channel group not found in database")
-var ErrInvalidChannelGroup = errors.New("Invalid Channel group in database (not sorted)")
-var ErrMissingChannels = errors.New("Missing channels in database")
+var ErrNotFound = errors.New("Object not found in the database")
+var ErrPreconditionFailed = errors.New("Precondition failed")
+var ErrInvalidObject = errors.New("Invalid object")
 var ErrInternal = errors.New("Internal error while trying to use database")

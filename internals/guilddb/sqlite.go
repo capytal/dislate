@@ -70,7 +70,7 @@ func (db *SQLiteDB) Message(channelID, messageID string) (Message, error) {
 	return db.selectMessage(`
 		SELECT * FROM guild-v1.messages
 			WHERE "ID" = $1 AND "ChannelID" = $2
-	`, channelID, messageID)
+	`, messageID, channelID)
 }
 
 func (db *SQLiteDB) MessagesWithOrigin(originID, originChannelID string) ([]Message, error) {
@@ -80,7 +80,7 @@ func (db *SQLiteDB) MessagesWithOrigin(originID, originChannelID string) ([]Mess
 	`, originID, originChannelID)
 }
 
-func (db *SQLiteDB) MessageWithOriginByLang(originID, originChannelID string, language lang.Language) (Message, error) {
+func (db *SQLiteDB) MessageWithOriginByLang(originChannelID, originID string, language lang.Language) (Message, error) {
 	return db.selectMessage(`
 		SELECT * FROM guild-v1.messages
 			WHERE "OriginID" = $1 AND "OriginChannelID" = $2 AND "Language" = $3
