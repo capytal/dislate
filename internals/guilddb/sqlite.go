@@ -209,6 +209,37 @@ func (db *SQLiteDB) ChannelInsert(c Channel) error {
 	return nil
 }
 
+func (db *SQLiteDB) ChannelUpdate(channel Channel) error {
+	r, err := db.sql.Exec(`
+		UPDATE guild-v1.channels
+			SET Language = $1
+			WHERE "ID" = $2
+	`, channel.Language, channel.ID)
+
+	if err != nil {
+		return errors.Join(ErrInternal, err)
+	} else if rows, _ := r.RowsAffected(); rows == 0 {
+		return ErrNoAffect
+	}
+
+	return nil
+}
+
+func (db *SQLiteDB) ChannelDelete(channel Channel) error {
+	r, err := db.sql.Exec(`
+		DELETE guild-v1.channels
+			WHERE "ID" = $1
+	`, channel.ID)
+
+	if err != nil {
+		return errors.Join(ErrInternal, err)
+	} else if rows, _ := r.RowsAffected(); rows == 0 {
+		return ErrNoAffect
+	}
+
+	return nil
+}
+
 func (db *SQLiteDB) ChannelGroup(channelID string) (ChannelGroup, error) {
 	var g string
 
