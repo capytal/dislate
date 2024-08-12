@@ -80,7 +80,10 @@ func (db *SQLiteDB) MessagesWithOrigin(originID, originChannelID string) ([]Mess
 	`, originID, originChannelID)
 }
 
-func (db *SQLiteDB) MessageWithOriginByLang(originChannelID, originID string, language lang.Language) (Message, error) {
+func (db *SQLiteDB) MessageWithOriginByLang(
+	originChannelID, originID string,
+	language lang.Language,
+) (Message, error) {
 	return db.selectMessage(`
 		SELECT * FROM guild-v1.messages
 			WHERE "OriginID" = $1 AND "OriginChannelID" = $2 AND "Language" = $3
@@ -90,9 +93,16 @@ func (db *SQLiteDB) MessageWithOriginByLang(originChannelID, originID string, la
 func (db *SQLiteDB) MessageInsert(m Message) error {
 	_, err := db.Channel(m.ChannelID)
 	if errors.Is(err, ErrNotFound) {
-		return errors.Join(ErrPreconditionFailed, fmt.Errorf("Channel %s doesn't exists in the database", m.ChannelID))
+		return errors.Join(
+			ErrPreconditionFailed,
+			fmt.Errorf("Channel %s doesn't exists in the database", m.ChannelID),
+		)
 	} else if err != nil {
-		return errors.Join(ErrInternal, errors.New("Failed to check if Channel exists in the database"), err)
+		return errors.Join(
+			ErrInternal,
+			errors.New("Failed to check if Channel exists in the database"),
+			err,
+		)
 	}
 
 	r, err := db.sql.Exec(`
@@ -269,7 +279,10 @@ func (db *SQLiteDB) ChannelGroup(channelID string) (ChannelGroup, error) {
 
 	ids := strings.Split(g, ",")
 	if !slices.IsSorted(ids) {
-		return ChannelGroup{}, ErrInvalidChannelGroup
+		return ChannelGroup{}, errors.Join(
+			ErrInvalidObject,
+			fmt.Errorf("Channel in database is invalid, ids are not sorted: %s", ids),
+		)
 	}
 	for i, v := range ids {
 		ids[i] = fmt.Sprintf("\"ID\" = %s", v)
@@ -281,7 +294,11 @@ func (db *SQLiteDB) ChannelGroup(channelID string) (ChannelGroup, error) {
 	`, strings.Join(ids, " OR ")))
 
 	if errors.Is(err, ErrNotFound) || len(cs) != len(ids) {
-		return ChannelGroup{}, errors.Join(ErrMissingChannels, err)
+		return ChannelGroup{}, errors.Join(
+			ErrPreconditionFailed,
+			fmt.Errorf("ChannelGroup has Channels that doesn't exist in the database, group: %s", ids),
+			err,
+		)
 	} else if err != nil {
 		return ChannelGroup{}, errors.Join(ErrInternal, err)
 	}
