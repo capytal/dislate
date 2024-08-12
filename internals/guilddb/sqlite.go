@@ -88,6 +88,13 @@ func (db *SQLiteDB) MessageWithOriginByLang(originChannelID, originID string, la
 }
 
 func (db *SQLiteDB) MessageInsert(m Message) error {
+	_, err := db.Channel(m.ChannelID)
+	if errors.Is(err, ErrNotFound) {
+		return errors.Join(ErrPreconditionFailed, fmt.Errorf("Channel %s doesn't exists in the database", m.ChannelID))
+	} else if err != nil {
+		return errors.Join(ErrInternal, errors.New("Failed to check if Channel exists in the database"), err)
+	}
+
 	r, err := db.sql.Exec(`
 		INSERT INTO guild-v1.messages (ID, ChannelID, Language, OriginID, OriginChannelID)
 			VALUES ($1, $2, $3, $4, $5)
@@ -153,7 +160,7 @@ func (db *SQLiteDB) selectMessage(query string, args ...any) (Message, error) {
 		Scan(&m.ID, &m.ChannelID, &m.Language, &m.OriginID, &m.OriginChannelID)
 
 	if errors.Is(err, sql.ErrNoRows) {
-		return m, errors.Join(ErrNoMessages, err)
+		return m, errors.Join(ErrNotFound, err)
 	} else if err != nil {
 		return m, errors.Join(ErrInternal, err)
 	}
@@ -186,7 +193,7 @@ func (db *SQLiteDB) selectMessages(query string, args ...any) ([]Message, error)
 
 	if len(ms) == 0 {
 		return ms, errors.Join(
-			ErrNoMessages,
+			ErrNotFound,
 			fmt.Errorf("Query: %s\nArguments: %v", query, args),
 		)
 	}
@@ -255,7 +262,7 @@ func (db *SQLiteDB) ChannelGroup(channelID string) (ChannelGroup, error) {
 	`, channelID).Scan(&g)
 
 	if errors.Is(err, sql.ErrNoRows) {
-		return ChannelGroup{}, errors.Join(ErrNoChannelGroup, err)
+		return ChannelGroup{}, errors.Join(ErrNotFound, err)
 	} else if err != nil {
 		return ChannelGroup{}, errors.Join(ErrInternal, err)
 	}
@@ -273,7 +280,7 @@ func (db *SQLiteDB) ChannelGroup(channelID string) (ChannelGroup, error) {
 			WHERE %s
 	`, strings.Join(ids, " OR ")))
 
-	if errors.Is(err, ErrNoChannels) || len(cs) != len(ids) {
+	if errors.Is(err, ErrNotFound) || len(cs) != len(ids) {
 		return ChannelGroup{}, errors.Join(ErrMissingChannels, err)
 	} else if err != nil {
 		return ChannelGroup{}, errors.Join(ErrInternal, err)
@@ -360,7 +367,7 @@ func (db *SQLiteDB) selectChannel(query string, args ...any) (Channel, error) {
 		Scan(&c.ID, &c.Language)
 
 	if errors.Is(err, sql.ErrNoRows) {
-		return c, errors.Join(ErrNoMessages, err)
+		return c, errors.Join(ErrNotFound, err)
 	} else if err != nil {
 		return c, errors.Join(ErrInternal, err)
 	}
@@ -393,7 +400,7 @@ func (db *SQLiteDB) selectChannels(query string, args ...any) ([]Channel, error)
 
 	if len(cs) == 0 {
 		return cs, errors.Join(
-			ErrNoChannels,
+			ErrNotFound,
 			fmt.Errorf("Query: %s\nArguments: %v", query, args),
 		)
 	}
