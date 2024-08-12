@@ -323,6 +323,31 @@ func (db *SQLiteDB) ChannelGroupUpdate(group ChannelGroup) error {
 	return nil
 }
 
+func (db *SQLiteDB) ChannelGroupDelete(group ChannelGroup) error {
+	var ids, idsq []string
+	for _, c := range group {
+		ids = append(ids, c.ID)
+		idsq = append(idsq, "\"ID\" LIKE \""+c.ID+"\"")
+	}
+	slices.Sort(ids)
+
+	r, err := db.sql.Exec(
+		fmt.Sprintf(`
+			DELETE FROM guild-v1.channel-groups
+				WHERE %s
+		`, strings.Join(idsq, " OR ")),
+		strings.Join(ids, ","),
+	)
+
+	if err != nil {
+		return errors.Join(ErrInternal, err)
+	} else if rows, _ := r.RowsAffected(); rows == 0 {
+		return ErrNoAffect
+	}
+
+	return nil
+}
+
 func (db *SQLiteDB) selectChannel(query string, args ...any) (Channel, error) {
 	var c Channel
 	err := db.sql.QueryRow(query, args...).
