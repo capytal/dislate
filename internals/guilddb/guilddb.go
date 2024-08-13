@@ -20,13 +20,6 @@ type Channel struct {
 
 type ChannelGroup []Channel
 
-type UserWebhook struct {
-	ID        string
-	ChannelID string
-	UserID    string
-	Token     string
-}
-
 type GuildDB interface {
 	// Selects and returns a Message from the database, based on the
 	// key pair of Channel's ID and Message's ID.
