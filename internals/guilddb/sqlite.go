@@ -7,7 +7,7 @@ import (
 	"slices"
 	"strings"
 
-	"dislate/internals/lang"
+	"dislate/internals/translator/lang"
 )
 
 type SQLiteDB struct {

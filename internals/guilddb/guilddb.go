@@ -1,7 +1,7 @@
 package guilddb
 
 import (
-	"dislate/internals/lang"
+	"dislate/internals/translator/lang"
 	"errors"
 )
 
