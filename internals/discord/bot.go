@@ -27,5 +27,5 @@ func (b *Bot) Start() error {
 	return b.session.Open()
 }
 func (b *Bot) Stop() error {
-	return b.session.Open()
+	return b.session.Close()
 }
