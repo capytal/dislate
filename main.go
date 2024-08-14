@@ -10,10 +10,6 @@ import (
 	"syscall"
 )
 
-const DEST_CHANNEL = "1270407366617333920"
-const INPUT_CHANNEL = "1270407349869482006"
-const USER_WEBHOOK_FORMAT = "dislate-user-%s"
-
 func main() {
 	log.Printf("Hello, world")
 
