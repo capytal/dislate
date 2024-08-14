@@ -29,7 +29,7 @@ func (db *SQLiteDB) Close() error {
 
 func (db *SQLiteDB) Prepare() error {
 	_, err := db.sql.Exec(`
-		CREATE TABLE IF NOT EXISTS dislateGuildV1.messages (
+		CREATE TABLE IF NOT EXISTS messages (
 			ID              text NOT NULL,
 			ChannelID       text NOT NULL,
 			Language        text NOT NULL,
@@ -46,12 +46,12 @@ func (db *SQLiteDB) Prepare() error {
 	}
 
 	_, err = db.sql.Exec(`
-		CREATE TABLE IF NOT EXISTS dislateGuildV1.channels (
+		CREATE TABLE IF NOT EXISTS channels (
 			ID       text NOT NULL,
 			Language text NOT NULL,
 			PRIMARY KEY(ID)
 		);
-		CREATE TABLE IF NOT EXISTS dislateGuildV1.channel-groups (
+		CREATE TABLE IF NOT EXISTS channel-groups (
 			Channels text NOT NULL PRIMARY KEY
 		);
 	`)
