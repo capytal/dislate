@@ -28,7 +28,7 @@ func init() {
 func main() {
 	log.Printf("Hello, world")
 
-	db, err := guilddb.NewSQLiteDB("file:./guild.db")
+	db, err := guilddb.NewSQLiteDB(*database_file)
 	if err != nil {
 		log.Printf("ERROR: failed to open database %s", err)
 		return
