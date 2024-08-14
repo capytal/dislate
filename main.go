@@ -1,7 +1,7 @@
 package main
 
 import (
-	"dislate/internals/discord"
+	"dislate/internals/discord/bot"
 	"dislate/internals/guilddb"
 	"dislate/internals/translator"
 	"flag"
@@ -17,7 +17,7 @@ const (
 	GOOGLE_TRANSLATE TranslationProvider = "google-translate"
 )
 
-var translation_provider = flag.String("tprovider", string(GOOGLE_TRANSLATE), "Translation provider")
+// var translation_provider = flag.String("tprovider", string(GOOGLE_TRANSLATE), "Translation provider")
 var database_file = flag.String("db", "file:./guild.db", "SQLite database file/location")
 var discord_token = flag.String("token", os.Getenv("DISCORD_TOKEN"), "Discord bot authentication token")
 
@@ -49,7 +49,7 @@ func main() {
 	}
 	log.Print("Database prepared to be used")
 
-	bot, err := discord.NewBot(*discord_token, db, translator.NewMockTranslator())
+	bot, err := bot.NewBot(*discord_token, db, translator.NewMockTranslator(), log.Default())
 	if err != nil {
 		log.Printf("ERROR: failed to create discord bot: %s", err)
 		return
