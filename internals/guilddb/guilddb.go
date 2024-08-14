@@ -5,36 +5,41 @@ import (
 	"errors"
 )
 
-type Message struct {
-	ID              string
-	ChannelID       string
-	Language        lang.Language
-	OriginID        *string
-	OriginChannelID *string
+type Guild struct {
+	ID string
 }
 
 type Channel struct {
 	ID       string
+	GuildID  string
 	Language lang.Language
 }
-
 type ChannelGroup []Channel
+
+type Message struct {
+	ID              string
+	ChannelID       string
+	GuildID         string
+	Language        lang.Language
+	OriginID        *string
+	OriginChannelID *string
+}
 
 type GuildDB interface {
 	// Selects and returns a Message from the database, based on the
 	// key pair of Channel's ID and Message's ID.
 	//
 	// Will return ErrNotFound if no message is found or ErrInternal.
-	Message(channelID, messageID string) (Message, error)
+	Message(guildID, channelID, ID string) (Message, error)
 	// Returns a slice of Messages with the provided Message.OriginChannelID and Message.OriginID.
 	//
 	// Will return ErrNotFound if no message is found (slice's length == 0) or ErrInternal.
-	MessagesWithOrigin(originChannelID, originID string) ([]Message, error)
+	MessagesWithOrigin(guildID, originChannelID, originID string) ([]Message, error)
 	// Returns a Messages with the provided Message.OriginChannelID, Message.OriginID
 	// and Message.Language.
 	//
 	// Will return ErrNotFound if no message is found or ErrInternal.
-	MessageWithOriginByLang(originChannelId, originId string, language lang.Language) (Message, error)
+	MessageWithOriginByLang(guildID, originChannelId, originId string, language lang.Language) (Message, error)
 	// Inserts a new Message object in the database.
 	//
 	// Message.ChannelID and Message.ID must be a unique pair and not already
@@ -46,58 +51,71 @@ type GuildDB interface {
 	// is a translated one.
 	//
 	// Will return ErrNoAffect if the object already exists or ErrInternal.
-	MessageInsert(message Message) error
+	MessageInsert(m Message) error
 	// Updates the Message object in the database. Message.ID and Message.ChannelID
 	// are used to find the correct message.
 	//
 	// Will return ErrNoAffect if no object was updated or ErrInternal.
-	MessageUpdate(message Message) error
+	MessageUpdate(m Message) error
 	// Deletes the Message object in the database. Message.ID and Message.ChannelID
 	// are used to find the correct message.
 	//
 	// Will return ErrNoAffect if no object was deleted or ErrInternal.
-	MessageDelete(message Message) error
+	MessageDelete(m Message) error
 	// Selects and returns a Channel from the database, based on the
 	// ID provided.
 	//
 	// Will return ErrNotFound if no channel is found or ErrInternal.
-	Channel(channelID string) (Channel, error)
+	Channel(guildID, ID string) (Channel, error)
 	// Inserts a new Channel object in the database.
 	//
 	// Channel.ID must be unique and not already in the database.
 	//
 	// Will return ErrNoAffect if the object already exists or ErrInternal.
-	ChannelInsert(channel Channel) error
+	ChannelInsert(c Channel) error
 	// Updates the Channel object in the database. Channel.ID is used to find the
 	// correct Channel.
 	//
 	// Will return ErrNoAffect if no object was updated or ErrInternal.
-	ChannelUpdate(channel Channel) error
+	ChannelUpdate(c Channel) error
 	// Deletes the Channel object in the database. Channel.ID is used to find the
 	// correct Channel.
 	//
-	// Will return ErrNoAffect if no object was updated or ErrInternal.
-	ChannelDelete(channel Channel) error
+	// Will return ErrNoAffect if no object was deleted or ErrInternal.
+	ChannelDelete(c Channel) error
 	// Selects and returns a ChannelGroup from the database. Finds a ChannelGroup
 	// that has a Channel if the provided ID.
 	//
 	// Channels cannot be in two ChannelGroup at the same time.
 	//
 	// Will return ErrNotFound if no channel is found or ErrInternal.
-	ChannelGroup(channelID string) (ChannelGroup, error)
+	ChannelGroup(guildID, ID string) (ChannelGroup, error)
 	// Inserts a new ChannelGroup object in the database. ChannelGroup must be unique
 	// and not have Channels that are already in other groups.
 	//
 	// Will return ErrNoAffect if the object already exists or ErrInternal.
-	ChannelGroupInsert(group ChannelGroup) error
+	ChannelGroupInsert(g ChannelGroup) error
 	// Updates the ChannelGroup object in the database.
 	//
 	// Will return ErrNoAffect if no object was updated or ErrInternal.
-	ChannelGroupUpdate(channel ChannelGroup) error
+	ChannelGroupUpdate(g ChannelGroup) error
 	// Deletes the ChannelGroup object in the database.
 	//
-	// Will return ErrNoAffect if no object was updated or ErrInternal.
-	ChannelGroupDelete(channel ChannelGroup) error
+	// Will return ErrNoAffect if no object was deleted or ErrInternal.
+	ChannelGroupDelete(g ChannelGroup) error
+	// Selects and returns a Guild from the database.
+	//
+	// Will return ErrNotFound if no Guild is found or ErrInternal.
+	Guild(ID string) (Guild, error)
+	// Inserts a new Guild object in the database. Guild.ID must be unique and
+	// not already in the database.
+	//
+	// Will return ErrNoAffect if the object already exists or ErrInternal.
+	GuildInsert(g Guild) error
+	// Delete a Guild from the database. Guild.ID is used to find the object.
+	//
+	// Will return ErrNoAffect if no object was deleted or ErrInternal.
+	GuildDelete(g Guild) error
 }
 
 var ErrNoAffect = errors.New("Not able to affect anything in the database")
