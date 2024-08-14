@@ -29,7 +29,7 @@ func (db *SQLiteDB) Close() error {
 
 func (db *SQLiteDB) Prepare() error {
 	_, err := db.sql.Exec(`
-		INSERT TABLE IF NOT EXISTS guild.messages (
+		CREATE TABLE IF NOT EXISTS guild-v1.messages (
 			ID              text NOT NULL,
 			ChannelID       text NOT NULL,
 			Language        text NOT NULL,
@@ -46,12 +46,12 @@ func (db *SQLiteDB) Prepare() error {
 	}
 
 	_, err = db.sql.Exec(`
-		INSERT TABLE IF NOT EXISTS guild-v1.channels (
+		CREATE TABLE IF NOT EXISTS guild-v1.channels (
 			ID       text NOT NULL,
 			Language text NOT NULL,
 			PRIMARY KEY(ID)
 		);
-		INSERT TABLE IF NOT EXISTS guild-v1.channel-groups (
+		CREATE TABLE IF NOT EXISTS guild-v1.channel-groups (
 			Channels text NOT NULL PRIMARY KEY
 		);
 	`)
@@ -60,7 +60,7 @@ func (db *SQLiteDB) Prepare() error {
 	}
 
 	_, err = db.sql.Exec(`
-		INSERT TABLE IF NOT EXISTS guild-v1.user-webhooks (
+		CREATE TABLE IF NOT EXISTS guild-v1.user-webhooks (
 			ID        text NOT NULL,
 			ChannelID text NOT NULL,
 			UserID    text NOT NULL,
