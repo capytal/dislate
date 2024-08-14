@@ -59,19 +59,6 @@ func (db *SQLiteDB) Prepare() error {
 		return errors.Join(ErrInternal, err)
 	}
 
-	_, err = db.sql.Exec(`
-		CREATE TABLE IF NOT EXISTS guild-v1.user-webhooks (
-			ID        text NOT NULL,
-			ChannelID text NOT NULL,
-			UserID    text NOT NULL,
-			Token     text NOT NULL,
-			PRIMARY KEY(ID, ChannelID, UserID)
-		);
-	`)
-	if err != nil {
-		return errors.Join(ErrInternal, err)
-	}
-
 	return nil
 }
 
