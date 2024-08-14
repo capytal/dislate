@@ -1,6 +1,6 @@
 package translator
 
-import "dislate/internals/lang"
+import "dislate/internals/translator/lang"
 
 type Translator interface {
 	// Translate a text from a language to another language
