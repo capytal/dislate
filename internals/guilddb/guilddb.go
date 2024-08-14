@@ -34,7 +34,7 @@ type GuildDB interface {
 	// and Message.Language.
 	//
 	// Will return ErrNotFound if no message is found or ErrInternal.
-	MessagesWithOriginByLang(originChannelId, originId string, language lang.Language) (Message, error)
+	MessageWithOriginByLang(originChannelId, originId string, language lang.Language) (Message, error)
 	// Inserts a new Message object in the database.
 	//
 	// Message.ChannelID and Message.ID must be a unique pair and not already
@@ -61,7 +61,7 @@ type GuildDB interface {
 	// ID provided.
 	//
 	// Will return ErrNotFound if no channel is found or ErrInternal.
-	Channel(channelID string) (Message, error)
+	Channel(channelID string) (Channel, error)
 	// Inserts a new Channel object in the database.
 	//
 	// Channel.ID must be unique and not already in the database.
@@ -84,7 +84,7 @@ type GuildDB interface {
 	// Channels cannot be in two ChannelGroup at the same time.
 	//
 	// Will return ErrNotFound if no channel is found or ErrInternal.
-	ChannelGroup(channelID string) (Message, error)
+	ChannelGroup(channelID string) (ChannelGroup, error)
 	// Inserts a new ChannelGroup object in the database. ChannelGroup must be unique
 	// and not have Channels that are already in other groups.
 	//
@@ -93,11 +93,11 @@ type GuildDB interface {
 	// Updates the ChannelGroup object in the database.
 	//
 	// Will return ErrNoAffect if no object was updated or ErrInternal.
-	ChannelGroupUpdate(channel Channel) error
+	ChannelGroupUpdate(channel ChannelGroup) error
 	// Deletes the ChannelGroup object in the database.
 	//
 	// Will return ErrNoAffect if no object was updated or ErrInternal.
-	ChannelGroupDelete(channel Channel) error
+	ChannelGroupDelete(channel ChannelGroup) error
 }
 
 var ErrNoAffect = errors.New("Not able to affect anything in the database")
