@@ -35,7 +35,7 @@ func (db *SQLiteDB) Prepare() error {
 			Language        text NOT NULL,
 			OriginID        text,
 			OriginChannelID text,
-			PRIMARY KEY(ID, ChannelID)
+			PRIMARY KEY(ID, ChannelID),
 			FOREIGN KEY(ChannelID) REFERENCES guild.channels(ID),
 			FOREIGN KEY(OriginalID) REFERENCES guild.messages(ID),
 			FOREIGN KEY(OriginalChannelID) REFERENCES guild.channels(ID)
