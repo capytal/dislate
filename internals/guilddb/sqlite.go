@@ -37,8 +37,8 @@ func (db *SQLiteDB) Prepare() error {
 			OriginChannelID text,
 			PRIMARY KEY(ID, ChannelID),
 			FOREIGN KEY(ChannelID) REFERENCES channels(ID),
-			FOREIGN KEY(OriginalID) REFERENCES messages(ID),
-			FOREIGN KEY(OriginalChannelID) REFERENCES channels(ID)
+			FOREIGN KEY(OriginID) REFERENCES messages(ID),
+			FOREIGN KEY(OriginChannelID) REFERENCES channels(ID)
 		);
 	`)
 	if err != nil {
