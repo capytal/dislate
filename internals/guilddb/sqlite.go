@@ -8,14 +8,23 @@ import (
 	"strings"
 
 	"dislate/internals/translator/lang"
+	_ "github.com/tursodatabase/go-libsql"
 )
 
 type SQLiteDB struct {
 	sql *sql.DB
 }
 
-func NewSQLiteDB(db *sql.DB) SQLiteDB {
-	return SQLiteDB{db}
+func NewSQLiteDB(file string) (*SQLiteDB, error) {
+	db, err := sql.Open("libsql", file)
+	if err != nil {
+		return &SQLiteDB{}, err
+	}
+	return &SQLiteDB{db}, nil
+}
+
+func (db *SQLiteDB) Close() error {
+	return db.sql.Close()
 }
 
 func (db *SQLiteDB) Prepare() error {
