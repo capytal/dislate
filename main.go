@@ -33,18 +33,21 @@ func main() {
 		log.Printf("ERROR: failed to open database %s", err)
 		return
 	}
+	log.Print("Connection to database started")
 	defer func() {
 		err := db.Close()
 		if err != nil {
 			log.Printf("ERROR: failed to close database %s", err)
 			return
 		}
+		log.Print("Connection to database closed")
 	}()
 
 	if err := db.Prepare(); err != nil {
 		log.Printf("ERROR: failed to prepare database: %s", err)
 		return
 	}
+	log.Print("Database prepared to be used")
 
 	bot, err := discord.NewBot(*discord_token, db, translator.NewMockTranslator())
 	if err != nil {
@@ -55,11 +58,13 @@ func main() {
 		log.Printf("ERROR: failed to start discord bot: %s", err)
 		return
 	}
+	log.Print("Connection to discord bot started")
 	defer func() {
 		if err := bot.Stop(); err != nil {
 			log.Printf("ERROR: failed to stop discord bot: %s", err)
 			return
 		}
+		log.Print("Connection to discord bot stopped")
 	}()
 
 	sig := make(chan os.Signal, 1)
