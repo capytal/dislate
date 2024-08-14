@@ -64,16 +64,16 @@ func (db *SQLiteDB) Prepare() error {
 
 func (db *SQLiteDB) Message(channelID, messageID string) (Message, error) {
 	return db.selectMessage(`
-		SELECT * FROM guild-v1.messages
 			WHERE "ID" = $1 AND "ChannelID" = $2
 	`, messageID, channelID)
+		SELECT * FROM messages
 }
 
 func (db *SQLiteDB) MessagesWithOrigin(originID, originChannelID string) ([]Message, error) {
 	return db.selectMessages(`
-		SELECT * FROM guild-v1.messages
 			WHERE "OriginID" = $1 AND "OriginChannelID" = $2
 	`, originID, originChannelID)
+		SELECT * FROM messages
 }
 
 func (db *SQLiteDB) MessageWithOriginByLang(
@@ -81,7 +81,7 @@ func (db *SQLiteDB) MessageWithOriginByLang(
 	language lang.Language,
 ) (Message, error) {
 	return db.selectMessage(`
-		SELECT * FROM guild-v1.messages
+		SELECT * FROM messages
 			WHERE "OriginID" = $1 AND "OriginChannelID" = $2 AND "Language" = $3
 	`, originID, originChannelID, language)
 }
@@ -102,7 +102,7 @@ func (db *SQLiteDB) MessageInsert(m Message) error {
 	}
 
 	r, err := db.sql.Exec(`
-		INSERT INTO guild-v1.messages (ID, ChannelID, Language, OriginID, OriginChannelID)
+		INSERT INTO messages (ID, ChannelID, Language, OriginID, OriginChannelID)
 			VALUES ($1, $2, $3, $4, $5)
 	`, m.ID, m.ChannelID, m.Language, m.OriginID, m.OriginChannelID)
 
@@ -117,7 +117,7 @@ func (db *SQLiteDB) MessageInsert(m Message) error {
 
 func (db *SQLiteDB) MessageUpdate(message Message) error {
 	r, err := db.sql.Exec(`
-		UPDATE guild-v1.messages
+		UPDATE messages
 			SET Language = $1, OriginChannelID = $2, OriginID = $3
 			WHERE "ID" = $4 AND "ChannelID" = $5
 	`, message.Language,
@@ -138,7 +138,7 @@ func (db *SQLiteDB) MessageUpdate(message Message) error {
 
 func (db *SQLiteDB) MessageDelete(message Message) error {
 	_, err := db.sql.Exec(`
-		DELETE guild-v1.channels
+		DELETE channels
 			WHERE "OriginID" = $1 AND "OriginChannelID" = $2
 	`, message.ID, message.ChannelID)
 
@@ -147,7 +147,7 @@ func (db *SQLiteDB) MessageDelete(message Message) error {
 	}
 
 	r, err := db.sql.Exec(`
-		DELETE guild-v1.channels
+		DELETE channels
 			WHERE "ID" = $1 AND "ChannelID" = $2
 	`, message.ID, message.ChannelID)
 
@@ -208,14 +208,14 @@ func (db *SQLiteDB) selectMessages(query string, args ...any) ([]Message, error)
 
 func (db *SQLiteDB) Channel(channelID string) (Channel, error) {
 	return db.selectChannel(`
-		SELECT (ID, Language) FROM guild-v1.channels
+		SELECT (ID, Language) FROM channels
 			WHERE "ID" = $1
 	`, channelID)
 }
 
 func (db *SQLiteDB) ChannelInsert(c Channel) error {
 	r, err := db.sql.Exec(`
-		INSERT INTO guild-v1.channels (ID, Language)
+		INSERT INTO channels (ID, Language)
 			VALUES ($1, $2)
 	`, c.ID, c.Language)
 
@@ -230,7 +230,7 @@ func (db *SQLiteDB) ChannelInsert(c Channel) error {
 
 func (db *SQLiteDB) ChannelUpdate(channel Channel) error {
 	r, err := db.sql.Exec(`
-		UPDATE guild-v1.channels
+		UPDATE channels
 			SET Language = $1
 			WHERE "ID" = $2
 	`, channel.Language, channel.ID)
@@ -246,7 +246,7 @@ func (db *SQLiteDB) ChannelUpdate(channel Channel) error {
 
 func (db *SQLiteDB) ChannelDelete(channel Channel) error {
 	r, err := db.sql.Exec(`
-		DELETE guild-v1.channels
+		DELETE channels
 			WHERE "ID" = $1
 	`, channel.ID)
 
@@ -263,7 +263,7 @@ func (db *SQLiteDB) ChannelGroup(channelID string) (ChannelGroup, error) {
 	var g string
 
 	err := db.sql.QueryRow(`
-		SELECT (ID, Language) FROM guild-v1.channels
+		SELECT (ID, Language) FROM channel-groups
 			WHERE "Channels" LIKE "%$1%"
 	`, channelID).Scan(&g)
 
@@ -285,7 +285,7 @@ func (db *SQLiteDB) ChannelGroup(channelID string) (ChannelGroup, error) {
 	}
 
 	cs, err := db.selectChannels(fmt.Sprintf(`
-		SELECT (ID, Language) FROM guild-v1.channels
+		SELECT (ID, Language) FROM channels
 			WHERE %s
 	`, strings.Join(ids, " OR ")))
 
@@ -310,7 +310,7 @@ func (db *SQLiteDB) ChannelGroupInsert(group ChannelGroup) error {
 	slices.Sort(ids)
 
 	r, err := db.sql.Exec(`
-		INSERT INTO guild-v1.channel-groups (Channels)
+		INSERT INTO channel-groups (Channels)
 			VALUES ($1)
 	`, strings.Join(ids, ","))
 
@@ -333,7 +333,7 @@ func (db *SQLiteDB) ChannelGroupUpdate(group ChannelGroup) error {
 
 	r, err := db.sql.Exec(
 		fmt.Sprintf(`
-			UPDATE guild-v1.channel-groups
+			UPDATE channel-groups
 				SET Channels = $1
 				WHERE %s
 		`, strings.Join(idsq, " OR ")),
@@ -359,7 +359,7 @@ func (db *SQLiteDB) ChannelGroupDelete(group ChannelGroup) error {
 
 	r, err := db.sql.Exec(
 		fmt.Sprintf(`
-			DELETE FROM guild-v1.channel-groups
+			DELETE FROM channel-groups
 				WHERE %s
 		`, strings.Join(idsq, " OR ")),
 		strings.Join(ids, ","),
