@@ -45,7 +45,7 @@ func (db *SQLiteDB) Prepare() error {
 			PRIMARY KEY(ID, GuildID),
 			FOREIGN KEY(GuildID) REFERENCES guilds(ID)
 		);
-		CREATE TABLE IF NOT EXISTS channel-groups (
+		CREATE TABLE IF NOT EXISTS channelGroups (
 			GuildID  text NOT NULL,
 			Channels text NOT NULL,
 			PRIMARY KEY(Channels, GuildID),
@@ -280,7 +280,7 @@ func (db *SQLiteDB) ChannelGroup(guildID, channelID string) (ChannelGroup, error
 	var g string
 
 	err := db.sql.QueryRow(`
-		SELECT GuildID, ID, Language FROM channel-groups
+		SELECT GuildID, ID, Language FROM channelGroups
 			WHERE "GuildID" = $1 AND "Channels" LIKE "%$2%"
 	`, guildID, channelID).Scan(&g)
 
@@ -330,7 +330,7 @@ func (db *SQLiteDB) ChannelGroupInsert(g ChannelGroup) error {
 	slices.Sort(ids)
 
 	r, err := db.sql.Exec(`
-		INSERT OR IGNORE INTO channel-groups (GuildID, Channels)
+		INSERT OR IGNORE INTO channelGroups (GuildID, Channels)
 			VALUES ($1, $2)
 	`, g[0].GuildID, strings.Join(ids, ","))
 
@@ -357,7 +357,7 @@ func (db *SQLiteDB) ChannelGroupUpdate(g ChannelGroup) error {
 
 	r, err := db.sql.Exec(
 		fmt.Sprintf(`
-			UPDATE channel-groups
+			UPDATE channelGroups
 				SET Channels = $1
 				WHERE %s AND "GuildID" = $2
 		`, strings.Join(idsq, " OR ")),
@@ -388,7 +388,7 @@ func (db *SQLiteDB) ChannelGroupDelete(g ChannelGroup) error {
 
 	r, err := db.sql.Exec(
 		fmt.Sprintf(`
-			DELETE FROM channel-groups
+			DELETE FROM channelGroups
 				WHERE %s AND "GuildID" = $1
 		`, strings.Join(idsq, " OR ")),
 		g[0].GuildID,
