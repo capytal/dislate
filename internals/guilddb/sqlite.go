@@ -113,7 +113,7 @@ func (db *SQLiteDB) MessageInsert(m Message) error {
 	}
 
 	r, err := db.sql.Exec(`
-		INSERT INTO messages (GuildID, ChannelID, ID, Language, OriginChannelID, OriginID)
+		INSERT OR IGNORE INTO messages (GuildID, ChannelID, ID, Language, OriginChannelID, OriginID)
 			VALUES ($1, $2, $3, $4, $5, $6)
 	`, m.GuildID, m.ChannelID, m.ID, m.Language, m.OriginChannelID, m.OriginID)
 
@@ -232,7 +232,7 @@ func (db *SQLiteDB) Channel(guildID, ID string) (Channel, error) {
 
 func (db *SQLiteDB) ChannelInsert(c Channel) error {
 	r, err := db.sql.Exec(`
-		INSERT INTO channels (GuildID, ID, Language)
+		INSERT OR IGNORE INTO channels (GuildID, ID, Language)
 			VALUES ($1, $2, $3)
 	`, c.GuildID, c.ID, c.Language)
 
@@ -330,7 +330,7 @@ func (db *SQLiteDB) ChannelGroupInsert(g ChannelGroup) error {
 	slices.Sort(ids)
 
 	r, err := db.sql.Exec(`
-		INSERT INTO channel-groups (GuildID, Channels)
+		INSERT OR IGNORE INTO channel-groups (GuildID, Channels)
 			VALUES ($1, $2)
 	`, g[0].GuildID, strings.Join(ids, ","))
 
@@ -471,7 +471,7 @@ func (db *SQLiteDB) Guild(ID string) (Guild, error) {
 
 func (db *SQLiteDB) GuildInsert(g Guild) error {
 	r, err := db.sql.Exec(`
-		INSERT INTO guilds (ID)
+		INSERT OR IGNORE INTO guilds (ID)
 			VALUES ($1)
 	`, g.ID)
 
