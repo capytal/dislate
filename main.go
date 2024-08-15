@@ -5,10 +5,12 @@ import (
 	"dislate/internals/guilddb"
 	"dislate/internals/translator"
 	"flag"
-	"log"
+	"log/slog"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/charmbracelet/log"
 )
 
 type TranslationProvider string
@@ -26,45 +28,45 @@ func init() {
 }
 
 func main() {
-	log.Printf("Hello, world")
+	logger := slog.New(log.New(os.Stderr))
 
 	db, err := guilddb.NewSQLiteDB(*database_file)
 	if err != nil {
-		log.Printf("ERROR: failed to open database %s", err)
+		logger.Error("Failed to open database connection", slog.String("err", err.Error()))
 		return
 	}
-	log.Print("Connection to database started")
+	logger.Info("Connection to database started", slog.String("file", *database_file))
 	defer func() {
 		err := db.Close()
 		if err != nil {
-			log.Printf("ERROR: failed to close database %s", err)
+			logger.Error("Failed to close database connection", slog.String("err", err.Error()))
 			return
 		}
-		log.Print("Connection to database closed")
+		logger.Info("Connection to database closed", slog.String("file", *database_file))
 	}()
 
 	if err := db.Prepare(); err != nil {
-		log.Printf("ERROR: failed to prepare database: %s", err)
+		logger.Error("Failed to prepare database", slog.String("err", err.Error()))
 		return
 	}
-	log.Print("Database prepared to be used")
+	logger.Info("Database ready to be used")
 
-	bot, err := bot.NewBot(*discord_token, db, translator.NewMockTranslator(), log.Default())
+	bot, err := bot.NewBot(*discord_token, db, translator.NewMockTranslator(), logger)
 	if err != nil {
-		log.Printf("ERROR: failed to create discord bot: %s", err)
+		logger.Error("Failed to create discord bot", slog.String("err", err.Error()))
 		return
 	}
 	if err := bot.Start(); err != nil {
-		log.Printf("ERROR: failed to start discord bot: %s", err)
+		logger.Error("Failed to start discord bot", slog.String("err", err.Error()))
 		return
 	}
-	log.Print("Connection to discord bot started")
+	logger.Info("Discord bot started")
 	defer func() {
 		if err := bot.Stop(); err != nil {
-			log.Printf("ERROR: failed to stop discord bot: %s", err)
+			logger.Error("Failed to stop discord bot", slog.String("err", err.Error()))
 			return
 		}
-		log.Print("Connection to discord bot stopped")
+		logger.Info("Discord bot stopped")
 	}()
 
 	sig := make(chan os.Signal, 1)
