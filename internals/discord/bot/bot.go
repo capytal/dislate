@@ -34,7 +34,7 @@ func NewBot(token string, db guilddb.GuildDB, translator translator.Translator, 
 }
 
 func (b *Bot) Start() error {
-	b.registerHandlers()
+	b.registerEventHandlers()
 
 	if err := b.session.Open(); err != nil {
 		return err
