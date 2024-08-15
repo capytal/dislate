@@ -175,7 +175,7 @@ func (db *SQLiteDB) MessageDelete(m Message) error {
 func (db *SQLiteDB) selectMessage(query string, args ...any) (Message, error) {
 	var m Message
 	err := db.sql.QueryRow(fmt.Sprintf(`
-		SELECT (GuildID, ChannelID, ID, Language, OriginChannelID, OriginID) FROM messages
+		SELECT GuildID, ChannelID, ID, Language, OriginChannelID, OriginID FROM messages
 			%s
 	`, query), args...).
 		Scan(&m.GuildID, &m.ChannelID, &m.ID, &m.Language, &m.OriginChannelID, &m.OriginID)
@@ -191,7 +191,7 @@ func (db *SQLiteDB) selectMessage(query string, args ...any) (Message, error) {
 
 func (db *SQLiteDB) selectMessages(query string, args ...any) ([]Message, error) {
 	r, err := db.sql.Query(fmt.Sprintf(`
-		SELECT (GuildID, ChannelID, ID, Language, OriginChannelID, OriginID) FROM messages
+		SELECT GuildID, ChannelID, ID, Language, OriginChannelID, OriginID FROM messages
 			%s
 	`, query), args...)
 
@@ -280,7 +280,7 @@ func (db *SQLiteDB) ChannelGroup(guildID, channelID string) (ChannelGroup, error
 	var g string
 
 	err := db.sql.QueryRow(`
-		SELECT (GuildID, ID, Language) FROM channel-groups
+		SELECT GuildID, ID, Language FROM channel-groups
 			WHERE "GuildID" = $1 AND "Channels" LIKE "%$2%"
 	`, guildID, channelID).Scan(&g)
 
@@ -406,7 +406,7 @@ func (db *SQLiteDB) ChannelGroupDelete(g ChannelGroup) error {
 func (db *SQLiteDB) selectChannel(query string, args ...any) (Channel, error) {
 	var c Channel
 	err := db.sql.QueryRow(fmt.Sprintf(`
-		SELECT (GuildID, ID, Language) FROM channels
+		SELECT GuildID, ID, Language FROM channels
 			%s
 	`, query), args...).Scan(&c.GuildID, &c.ID, &c.Language)
 
@@ -421,7 +421,7 @@ func (db *SQLiteDB) selectChannel(query string, args ...any) (Channel, error) {
 
 func (db *SQLiteDB) selectChannels(query string, args ...any) ([]Channel, error) {
 	r, err := db.sql.Query(fmt.Sprintf(`
-		SELECT (GuildID, ID, Language) FROM channels
+		SELECT GuildID, ID, Language FROM channels
 			%s
 	`, query), args...)
 
@@ -458,7 +458,7 @@ func (db *SQLiteDB) Guild(ID string) (Guild, error) {
 	var g Guild
 
 	if err := db.sql.QueryRow(`
-		SELECT (ID) FROM guilds
+		SELECT "ID" FROM guilds
 			WHERE "ID" = $1
 	`, ID).Scan(g.ID); err != nil && errors.Is(err, sql.ErrNoRows) {
 		return Guild{}, errors.Join(ErrNotFound, err)
