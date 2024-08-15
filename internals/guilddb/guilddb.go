@@ -9,20 +9,40 @@ type Guild struct {
 	ID string
 }
 
+func NewGuild(ID string) Guild {
+	return Guild{ID}
+}
+
 type Channel struct {
-	ID       string
 	GuildID  string
+	ID       string
 	Language lang.Language
 }
+
+func NewChannel(GuildID, ID string, lang lang.Language) Channel {
+	return Channel{GuildID, ID, lang}
+}
+
 type ChannelGroup []Channel
 
 type Message struct {
-	ID              string
-	ChannelID       string
 	GuildID         string
+	ChannelID       string
+	ID              string
 	Language        lang.Language
-	OriginID        *string
 	OriginChannelID *string
+	OriginID        *string
+}
+
+func NewMessage(GuildID, ChannelID, ID string, lang lang.Language) Message {
+	return Message{GuildID, ChannelID, ID, lang, nil, nil}
+}
+func NewTranslatedMessage(
+	GuildID, ChannelID, ID string,
+	lang lang.Language,
+	OriginChannelID, OriginID string,
+) Message {
+	return Message{GuildID, ChannelID, ID, lang, &OriginChannelID, &OriginID}
 }
 
 type GuildDB interface {
