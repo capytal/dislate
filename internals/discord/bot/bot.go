@@ -9,12 +9,11 @@ import (
 )
 
 type Bot struct {
-	token              string
-	db                 guilddb.GuildDB
-	translator         translator.Translator
-	session            *discordgo.Session
-	logger             *slog.Logger
-	registeredCommands []*discordgo.ApplicationCommand
+	token      string
+	db         guilddb.GuildDB
+	translator translator.Translator
+	session    *discordgo.Session
+	logger     *slog.Logger
 }
 
 func NewBot(token string, db guilddb.GuildDB, translator translator.Translator, logger *slog.Logger) (*Bot, error) {
@@ -24,12 +23,11 @@ func NewBot(token string, db guilddb.GuildDB, translator translator.Translator, 
 	}
 
 	return &Bot{
-		token:              token,
-		db:                 db,
-		translator:         translator,
-		session:            discord,
-		logger:             logger,
-		registeredCommands: make([]*discordgo.ApplicationCommand, 0),
+		token:      token,
+		db:         db,
+		translator: translator,
+		session:    discord,
+		logger:     logger,
 	}, nil
 }
 

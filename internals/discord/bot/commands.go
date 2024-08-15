@@ -2,13 +2,15 @@ package bot
 
 import (
 	"dislate/internals/discord/bot/commands"
+	"fmt"
+	"log/slog"
 
 	dgo "github.com/bwmarrin/discordgo"
 )
 
 func (b *Bot) registerCommands() error {
 	cs := []commands.Command{
-		commands.NewTest(b.translator),
+		commands.NewManageChannel(b.db),
 	}
 
 	rcs := make([]*dgo.ApplicationCommand, len(cs))
@@ -20,8 +22,29 @@ func (b *Bot) registerCommands() error {
 			return err
 		}
 
-		handlers[cmd.Name] = v.Handle
+		handlers[cmd.Name] = func(s *dgo.Session, ic *dgo.InteractionCreate) {
+			err := v.Handle(s, ic)
+			if err != nil {
+				_ = s.InteractionRespond(ic.Interaction, &dgo.InteractionResponse{
+					Type: dgo.InteractionResponseDeferredChannelMessageWithSource,
+					Data: &dgo.InteractionResponseData{
+						Content: fmt.Sprintf("Error while trying to handle command: %s", err.Error()),
+						Flags:   dgo.MessageFlagsEphemeral,
+					},
+				})
+				b.logger.Error("Failed to handle command",
+					slog.String("name", cmd.Name),
+					slog.String("id", cmd.ID),
+					slog.String("err", err.Error()),
+				)
+			}
+		}
 		rcs[i] = cmd
+
+		b.logger.Info("Registered command",
+			slog.String("name", cmd.Name),
+			slog.String("id", cmd.ID),
+		)
 	}
 
 	b.session.AddHandler(func(s *dgo.Session, i *dgo.InteractionCreate) {
@@ -34,11 +57,20 @@ func (b *Bot) registerCommands() error {
 }
 
 func (b *Bot) removeCommands() error {
-	for _, v := range b.registeredCommands {
+	cmds, err := b.session.ApplicationCommands(b.session.State.Application.ID, "")
+	if err != nil {
+		return err
+	}
+
+	for _, v := range cmds {
 		err := b.session.ApplicationCommandDelete(b.session.State.User.ID, "", v.ID)
 		if err != nil {
 			return err
 		}
+		b.logger.Info("Removed command",
+			slog.String("name", v.Name),
+			slog.String("id", v.ID),
+		)
 	}
 	return nil
 }

@@ -1,37 +1,49 @@
 package commands
 
 import (
-	"dislate/internals/translator"
-	"dislate/internals/translator/lang"
+	"dislate/internals/guilddb"
 
 	dgo "github.com/bwmarrin/discordgo"
 )
 
 type Command interface {
 	Info() *dgo.ApplicationCommand
-	Handle(s *dgo.Session, i *dgo.InteractionCreate)
+	Handle(s *dgo.Session, i *dgo.InteractionCreate) error
 }
 
-type Test struct {
-	translator translator.Translator
+type ManageChannel struct {
+	db guilddb.GuildDB
 }
 
-func NewTest(t translator.Translator) Test {
-	return Test{t}
+func NewManageChannel(db guilddb.GuildDB) ManageChannel {
+	return ManageChannel{db}
 }
-func (c Test) Info() *dgo.ApplicationCommand {
+func (c ManageChannel) Info() *dgo.ApplicationCommand {
 	return &dgo.ApplicationCommand{
-		Name:        "test-command",
-		Description: "This is a test command",
+		Name:        "channel",
+		Description: "Manages a channel options",
+		Options: []*dgo.ApplicationCommandOption{{
+			Type:        dgo.ApplicationCommandOptionChannel,
+			Name:        "channel",
+			Description: "The channel to manage",
+			ChannelTypes: []dgo.ChannelType{
+				dgo.ChannelTypeGuildText,
+			},
+		}},
 	}
 }
-func (c Test) Handle(s *dgo.Session, i *dgo.InteractionCreate) {
-	txt, _ := c.translator.Translate(lang.EN, lang.PT, "Hello world!")
-
-	_ = s.InteractionRespond(i.Interaction, &dgo.InteractionResponse{
+func (c ManageChannel) Handle(s *dgo.Session, i *dgo.InteractionCreate) error {
+	err := s.InteractionRespond(i.Interaction, &dgo.InteractionResponse{
 		Type: dgo.InteractionResponseChannelMessageWithSource,
 		Data: &dgo.InteractionResponseData{
-			Content: txt,
+			Content: "Hello world!",
+			Flags:   dgo.MessageFlagsEphemeral,
 		},
 	})
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
