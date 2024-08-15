@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/charmbracelet/log"
 )
@@ -28,7 +29,11 @@ func init() {
 }
 
 func main() {
-	logger := slog.New(log.New(os.Stderr))
+	logger := slog.New(log.NewWithOptions(os.Stderr, log.Options{
+		TimeFormat: time.DateTime,
+		ReportTimestamp: true,
+		ReportCaller: true,
+	}))
 
 	db, err := guilddb.NewSQLiteDB(*database_file)
 	if err != nil {
