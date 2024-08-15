@@ -1,52 +1,30 @@
 package bot
 
 import (
-	"dislate/internals/translator/lang"
+	"dislate/internals/discord/bot/commands"
 
-	"github.com/bwmarrin/discordgo"
+	dgo "github.com/bwmarrin/discordgo"
 )
 
-type command struct {
-	command *discordgo.ApplicationCommand
-	handler func(*discordgo.Session, *discordgo.InteractionCreate)
-}
-
-func (b *Bot) commands() []command {
-	cmds := []command{{
-		&discordgo.ApplicationCommand{
-			Name:        "test-command",
-			Description: "This is a test command",
-		},
-		func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-			txt, _ := b.translator.Translate(lang.EN, lang.PT, "Hello world!")
-
-			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-				Type: discordgo.InteractionResponseChannelMessageWithSource,
-				Data: &discordgo.InteractionResponseData{
-					Content: txt,
-				},
-			})
-		},
-	}}
-	return cmds
-}
-
 func (b *Bot) registerCommands() error {
-	cs := b.commands()
-	rcs := make([]*discordgo.ApplicationCommand, len(cs))
-	handlers := make(map[string]func(*discordgo.Session, *discordgo.InteractionCreate), len(cs))
+	cs := []commands.Command{
+		commands.NewTest(b.translator),
+	}
+
+	rcs := make([]*dgo.ApplicationCommand, len(cs))
+	handlers := make(map[string]func(*dgo.Session, *dgo.InteractionCreate), len(cs))
 
 	for i, v := range cs {
-		cmd, err := b.session.ApplicationCommandCreate(b.session.State.User.ID, "", v.command)
+		cmd, err := b.session.ApplicationCommandCreate(b.session.State.User.ID, "", v.Info())
 		if err != nil {
 			return err
 		}
 
-		handlers[cmd.Name] = v.handler
+		handlers[cmd.Name] = v.Handle
 		rcs[i] = cmd
 	}
 
-	b.session.AddHandler(func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+	b.session.AddHandler(func(s *dgo.Session, i *dgo.InteractionCreate) {
 		if h, ok := handlers[i.ApplicationCommandData().Name]; ok {
 			h(s, i)
 		}
