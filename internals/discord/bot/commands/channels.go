@@ -11,7 +11,6 @@ import (
 	dgo "github.com/bwmarrin/discordgo"
 )
 
-
 type ManageChannel struct {
 	db gdb.GuildDB
 }
@@ -33,6 +32,9 @@ func (c ManageChannel) Subcommands() []Command {
 }
 func (c ManageChannel) Handle(s *dgo.Session, i *dgo.InteractionCreate) error {
 	return nil
+}
+func (c ManageChannel) Components() []Component {
+	return []Component{}
 }
 
 type ChannelsInfo struct {
@@ -94,6 +96,9 @@ func (c ChannelsInfo) Handle(s *dgo.Session, ic *dgo.InteractionCreate) error {
 	}
 
 	return nil
+}
+func (c ChannelsInfo) Components() []Component {
+	return []Component{}
 }
 func (c ChannelsInfo) Subcommands() []Command {
 	return []Command{}

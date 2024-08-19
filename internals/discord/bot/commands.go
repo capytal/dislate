@@ -17,6 +17,7 @@ func (b *Bot) registerCommands() error {
 	}
 
 	handlers := make(map[string]func(*dgo.Session, *dgo.InteractionCreate), len(cs))
+	componentsHandlers := make(map[string]func(*dgo.Session, *dgo.InteractionCreate))
 
 	for _, v := range cs {
 		var cmd *dgo.ApplicationCommand
@@ -47,6 +48,34 @@ func (b *Bot) registerCommands() error {
 			cmd, err = b.session.ApplicationCommandCreate(b.session.State.User.ID, "", info)
 			if err != nil {
 				return err
+			}
+		}
+
+		for _, c := range v.Components() {
+			cj, err := c.Info().MarshalJSON()
+			if err != nil {
+				return errors.Join(fmt.Errorf("Failed to marshal command"), err)
+			}
+
+			var v struct {
+				CustomID string `json:"custom_id"`
+			}
+			if err := json.Unmarshal(cj, &v); err != nil {
+				return errors.Join(fmt.Errorf("Failed to unmarshal command"), err)
+			}
+
+			componentsHandlers[v.CustomID] = func(s *dgo.Session, ic *dgo.InteractionCreate) {
+				b.logger.Debug("Handling message component",
+					slog.String("id", ic.Interaction.ID),
+					slog.String("custom_id", ic.Interaction.MessageComponentData().CustomID),
+				)
+				err := c.Handle(s, ic)
+				if err != nil {
+					b.logger.Error("Failed to handle message component",
+						slog.String("custom_id", ic.Interaction.MessageComponentData().CustomID),
+						slog.String("err", err.Error()),
+					)
+				}
 			}
 		}
 
@@ -106,8 +135,15 @@ func (b *Bot) registerCommands() error {
 	}
 
 	b.session.AddHandler(func(s *dgo.Session, i *dgo.InteractionCreate) {
-		if h, ok := handlers[i.ApplicationCommandData().Name]; ok {
-			h(s, i)
+		switch i.Interaction.Type {
+		case dgo.InteractionApplicationCommand:
+			if h, ok := handlers[i.ApplicationCommandData().Name]; ok {
+				h(s, i)
+			}
+		case dgo.InteractionMessageComponent:
+			if h, ok := componentsHandlers[i.MessageComponentData().CustomID]; ok {
+				h(s, i)
+			}
 		}
 	})
 
