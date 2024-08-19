@@ -6,10 +6,6 @@ import (
 	dgo "github.com/bwmarrin/discordgo"
 )
 
-type Command interface {
-	Info() *dgo.ApplicationCommand
-	Handle(s *dgo.Session, i *dgo.InteractionCreate) error
-}
 
 type ManageChannel struct {
 	db guilddb.GuildDB
