@@ -2,12 +2,14 @@ package guilddb
 
 import (
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"slices"
 	"strings"
 
 	"dislate/internals/translator/lang"
+
 	_ "github.com/tursodatabase/go-libsql"
 )
 
@@ -279,10 +281,10 @@ func (db *SQLiteDB) ChannelDelete(c Channel) error {
 func (db *SQLiteDB) ChannelGroup(guildID, channelID string) (ChannelGroup, error) {
 	var g string
 
-	err := db.sql.QueryRow(`
-		SELECT GuildID, ID, Language FROM channelGroups
-			WHERE "GuildID" = $1 AND "Channels" LIKE "%$2%"
-	`, guildID, channelID).Scan(&g)
+	err := db.sql.QueryRow(fmt.Sprintf(`
+		SELECT Channels FROM channelGroups, json_each(Channels)
+			WHERE "GuildID" = $1 AND json_each.value='%s';
+	`, channelID), guildID).Scan(&g)
 
 	if errors.Is(err, sql.ErrNoRows) {
 		return ChannelGroup{}, errors.Join(ErrNotFound, err)
@@ -329,10 +331,15 @@ func (db *SQLiteDB) ChannelGroupInsert(g ChannelGroup) error {
 	}
 	slices.Sort(ids)
 
-	r, err := db.sql.Exec(`
+	j, err := json.Marshal(ids)
+	if err != nil {
+		return errors.Join(ErrInternal, err)
+	}
+
+	r, err := db.sql.Exec(fmt.Sprintf(`
 		INSERT OR IGNORE INTO channelGroups (GuildID, Channels)
-			VALUES ($1, $2)
-	`, g[0].GuildID, strings.Join(ids, ","))
+			VALUES ($1, json('%s'))
+	`, string(j)), g[0].GuildID)
 
 	if err != nil {
 		return errors.Join(ErrInternal, err)
@@ -351,13 +358,13 @@ func (db *SQLiteDB) ChannelGroupUpdate(g ChannelGroup) error {
 	var ids, idsq []string
 	for _, c := range g {
 		ids = append(ids, c.ID)
-		idsq = append(idsq, "\"ID\" LIKE \""+c.ID+"\"")
+		idsq = append(idsq, "json_each.value='"+c.ID+"'")
 	}
 	slices.Sort(ids)
 
 	r, err := db.sql.Exec(
 		fmt.Sprintf(`
-			UPDATE channelGroups
+			UPDATE channelGroups, json_each(Channels)
 				SET Channels = $1
 				WHERE %s AND "GuildID" = $2
 		`, strings.Join(idsq, " OR ")),
@@ -382,14 +389,14 @@ func (db *SQLiteDB) ChannelGroupDelete(g ChannelGroup) error {
 	var ids, idsq []string
 	for _, c := range g {
 		ids = append(ids, c.ID)
-		idsq = append(idsq, "\"ID\" LIKE \""+c.ID+"\"")
+		idsq = append(idsq, "json_each.value='"+c.ID+"'")
 	}
 	slices.Sort(ids)
 
 	r, err := db.sql.Exec(
 		fmt.Sprintf(`
-			DELETE FROM channelGroups
-				WHERE %s AND "GuildID" = $1
+			DELETE FROM channelGroups, json_each(Channels)
+				WHERE %s AND "GuildID" = $2
 		`, strings.Join(idsq, " OR ")),
 		g[0].GuildID,
 	)
