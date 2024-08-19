@@ -5,19 +5,19 @@ import (
 	"dislate/internals/translator"
 	"log/slog"
 
-	"github.com/bwmarrin/discordgo"
+	dgo "github.com/bwmarrin/discordgo"
 )
 
 type Bot struct {
 	token      string
 	db         guilddb.GuildDB
 	translator translator.Translator
-	session    *discordgo.Session
+	session    *dgo.Session
 	logger     *slog.Logger
 }
 
 func NewBot(token string, db guilddb.GuildDB, translator translator.Translator, logger *slog.Logger) (*Bot, error) {
-	discord, err := discordgo.New("Bot " + token)
+	discord, err := dgo.New("Bot " + token)
 	if err != nil {
 		return &Bot{}, err
 	}
@@ -33,6 +33,8 @@ func NewBot(token string, db guilddb.GuildDB, translator translator.Translator, 
 
 func (b *Bot) Start() error {
 	b.registerEventHandlers()
+
+	b.session.Identify.Intents = dgo.MakeIntent(dgo.IntentsAllWithoutPrivileged)
 
 	if err := b.session.Open(); err != nil {
 		return err
