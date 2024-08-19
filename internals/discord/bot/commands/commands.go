@@ -7,6 +7,7 @@ import (
 type Command interface {
 	Info() *dgo.ApplicationCommand
 	Handle(s *dgo.Session, i *dgo.InteractionCreate) error
+	Subcommands() []Command
 }
 func getOptions(i *dgo.InteractionCreate) map[string]*dgo.ApplicationCommandInteractionDataOption {
 	opts := i.ApplicationCommandData().Options
