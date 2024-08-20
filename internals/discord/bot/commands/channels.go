@@ -2,6 +2,7 @@ package commands
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 
 	"dislate/internals/guilddb"
@@ -28,7 +29,9 @@ func (c ManageChannel) Info() *dgo.ApplicationCommand {
 	}
 }
 func (c ManageChannel) Subcommands() []Command {
-	return []Command{ChannelsInfo(c)}
+	return []Command{
+		ChannelsInfo(c),
+		ChannelsLink(c),
 }
 func (c ManageChannel) Handle(s *dgo.Session, i *dgo.InteractionCreate) error {
 	return nil
@@ -59,7 +62,7 @@ func (c ChannelsInfo) Info() *dgo.ApplicationCommand {
 	}
 }
 func (c ChannelsInfo) Handle(s *dgo.Session, ic *dgo.InteractionCreate) error {
-	opts := getOptions(ic)
+	opts := getOptions(ic.ApplicationCommandData().Options)
 
 	var err error
 
@@ -101,6 +104,119 @@ func (c ChannelsInfo) Components() []Component {
 	return []Component{}
 }
 func (c ChannelsInfo) Subcommands() []Command {
+	return []Command{}
+}
+
+type ChannelsLink struct {
+	db guilddb.GuildDB
+}
+
+func (c ChannelsLink) Info() *dgo.ApplicationCommand {
+	var permissions int64 = dgo.PermissionManageChannels
+
+	return &dgo.ApplicationCommand{
+		Name:                     "link",
+		Description:              "Link two channels together",
+		DefaultMemberPermissions: &permissions,
+		Options: []*dgo.ApplicationCommandOption{{
+			Type:        dgo.ApplicationCommandOptionChannel,
+			Name:        "channel_one",
+			Description: "The channel to link",
+			Required:    true,
+			ChannelTypes: []dgo.ChannelType{
+				dgo.ChannelTypeGuildText,
+			},
+		}, {
+			Type:        dgo.ApplicationCommandOptionChannel,
+			Name:        "channel_two",
+			Description: "The channel to link",
+			ChannelTypes: []dgo.ChannelType{
+				dgo.ChannelTypeGuildText,
+			},
+		}},
+	}
+}
+func (c ChannelsLink) Handle(s *dgo.Session, ic *dgo.InteractionCreate) error {
+	opts := getOptions(ic.ApplicationCommandData().Options)
+
+	var err error
+	var dch1, dch2 *dgo.Channel
+	if c, ok := opts["channel_one"]; ok {
+		dch1 = c.ChannelValue(s)
+	} else {
+		return errors.New("channel_one is required")
+	}
+
+	if c, ok := opts["channel_two"]; ok {
+		dch2 = c.ChannelValue(s)
+	} else {
+		dch2, err = s.Channel(ic.ChannelID)
+		if err != nil {
+			return err
+		}
+	}
+
+	if dch1.ID == dch2.ID {
+		return errors.New("channel_one and channel_two must be different values")
+	} else if dch1.Type != dch2.Type {
+		return errors.New("channel_one and channel_two must be the same channel types")
+	}
+
+	ch1, err := getChannel(c.db, dch1.GuildID, dch1.ID)
+	if err != nil {
+		return err
+	}
+	ch2, err := getChannel(c.db, dch2.GuildID, dch2.ID)
+	if err != nil {
+		return err
+	}
+
+	var cb1, cb2 guilddb.ChannelGroup
+
+	cb1, err = c.db.ChannelGroup(ch1.GuildID, ch1.ID)
+	if err != nil && !errors.Is(err, guilddb.ErrNotFound) {
+		return err
+	}
+	cb2, err = c.db.ChannelGroup(ch2.GuildID, ch2.ID)
+	if err != nil && !errors.Is(err, guilddb.ErrNotFound) {
+		return err
+	}
+
+	if len(cb1) > 0 && len(cb2) > 0 {
+		return errors.New("both channels are already in a group")
+	} else if len(cb1) > 0 {
+		cb1 = append(cb1, ch2)
+		err = c.db.ChannelGroupUpdate(cb1)
+	} else if len(cb2) > 0 {
+		cb2 = append(cb2, ch1)
+		err = c.db.ChannelGroupUpdate(cb2)
+	} else {
+		err = c.db.ChannelGroupInsert(guilddb.ChannelGroup{ch1, ch2})
+	}
+	if err != nil {
+		return err
+	}
+	err = s.InteractionRespond(ic.Interaction, &dgo.InteractionResponse{
+		Type: dgo.InteractionResponseChannelMessageWithSource,
+		Data: &dgo.InteractionResponseData{
+			Content: fmt.Sprintf(
+				"Linked channel %s (%s) and %s (%s)",
+				dch1.Name, dch1.ID, dch2.Name, dch2.ID,
+			),
+			Flags: dgo.MessageFlagsEphemeral,
+		},
+	})
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+func (c ChannelsLink) Components() []Component {
+	return []Component{}
+}
+func (c ChannelsLink) Subcommands() []Command {
 	return []Command{}
 }
 

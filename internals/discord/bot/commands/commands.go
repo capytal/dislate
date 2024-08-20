@@ -16,14 +16,18 @@ type Component interface {
 	Handle(s *dgo.Session, i *dgo.InteractionCreate) error
 }
 
-func getOptions(i *dgo.InteractionCreate) map[string]*dgo.ApplicationCommandInteractionDataOption {
-	opts := i.ApplicationCommandData().Options
+func getOptions(
+	opts []*dgo.ApplicationCommandInteractionDataOption,
+) map[string]*dgo.ApplicationCommandInteractionDataOption {
 	m := make(map[string]*dgo.ApplicationCommandInteractionDataOption, len(opts))
 
 	for _, opt := range opts {
-		m[opt.Name] = opt
+		if opt.Type == dgo.ApplicationCommandOptionSubCommand {
+			return getOptions(opt.Options)
+		} else {
+			m[opt.Name] = opt
+		}
 	}
 
 	return m
 }
-
