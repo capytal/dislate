@@ -321,8 +321,8 @@ func (db *SQLiteDB) ChannelGroup(guildID, channelID string) (ChannelGroup, error
 }
 
 func (db *SQLiteDB) ChannelGroupInsert(g ChannelGroup) error {
-	if len(g) != 0 {
-		return nil
+	if len(g) == 0 {
+		return ErrNoAffect
 	}
 
 	var ids []string
