@@ -279,12 +279,12 @@ func (db *SQLiteDB) ChannelDelete(c Channel) error {
 }
 
 func (db *SQLiteDB) ChannelGroup(guildID, channelID string) (ChannelGroup, error) {
-	var g string
 
+	var j string
 	err := db.sql.QueryRow(fmt.Sprintf(`
 		SELECT Channels FROM channelGroups, json_each(Channels)
 			WHERE "GuildID" = $1 AND json_each.value='%s';
-	`, channelID), guildID).Scan(&g)
+	`, channelID), guildID).Scan(&j)
 
 	if errors.Is(err, sql.ErrNoRows) {
 		return ChannelGroup{}, errors.Join(ErrNotFound, err)
@@ -292,12 +292,10 @@ func (db *SQLiteDB) ChannelGroup(guildID, channelID string) (ChannelGroup, error
 		return ChannelGroup{}, errors.Join(ErrInternal, err)
 	}
 
-	ids := strings.Split(g, ",")
-	if !slices.IsSorted(ids) {
-		return ChannelGroup{}, errors.Join(
-			ErrInvalidObject,
-			fmt.Errorf("Channel in database is invalid, ids are not sorted: %s", ids),
-		)
+	var ids []string
+	err = json.Unmarshal([]byte(j), &ids)
+	if err != nil {
+		return ChannelGroup{}, errors.Join(ErrInternal, err)
 	}
 	for i, v := range ids {
 		ids[i] = fmt.Sprintf("\"ID\" = %s", v)
