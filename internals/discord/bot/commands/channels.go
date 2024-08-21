@@ -32,6 +32,8 @@ func (c ManageChannel) Subcommands() []Command {
 	return []Command{
 		ChannelsInfo(c),
 		ChannelsLink(c),
+		ChannelsSetLang(c),
+	}
 }
 func (c ManageChannel) Handle(s *dgo.Session, i *dgo.InteractionCreate) error {
 	return nil
@@ -217,6 +219,99 @@ func (c ChannelsLink) Components() []Component {
 	return []Component{}
 }
 func (c ChannelsLink) Subcommands() []Command {
+	return []Command{}
+}
+
+type ChannelsSetLang struct {
+	db guilddb.GuildDB
+}
+
+func (c ChannelsSetLang) Info() *dgo.ApplicationCommand {
+	var permissions int64 = dgo.PermissionManageChannels
+
+	return &dgo.ApplicationCommand{
+		Name:                     "set-lang",
+		Description:              "Link two channels together",
+		DefaultMemberPermissions: &permissions,
+		Options: []*dgo.ApplicationCommandOption{{
+			Type:        dgo.ApplicationCommandOptionString,
+			Required:    true,
+			Name:        "language",
+			Description: "The new language",
+			Choices: []*dgo.ApplicationCommandOptionChoice{
+				{Name: "English (EN)", Value: lang.EN},
+				{Name: "Portuguese (PT)", Value: lang.PT},
+			},
+		}, {
+			Type:        dgo.ApplicationCommandOptionChannel,
+			Name:        "channel",
+			Description: "The channel to change the language",
+			ChannelTypes: []dgo.ChannelType{
+				dgo.ChannelTypeGuildText,
+			},
+		}},
+	}
+}
+func (c ChannelsSetLang) Handle(s *dgo.Session, ic *dgo.InteractionCreate) error {
+	opts := getOptions(ic.ApplicationCommandData().Options)
+
+	var err error
+	var dch *dgo.Channel
+	var l lang.Language
+
+	if c, ok := opts["language"]; ok {
+		switch c.StringValue() {
+		case string(lang.PT):
+			l = lang.PT
+		default:
+			l = lang.EN
+		}
+	} else {
+		return errors.New("language is a required option")
+	}
+
+	if c, ok := opts["channel"]; ok {
+		dch = c.ChannelValue(s)
+	} else {
+		dch, err = s.Channel(ic.ChannelID)
+		if err != nil {
+			return err
+		}
+	}
+
+	ch, err := getChannel(c.db, dch.GuildID, dch.ID)
+	if err != nil {
+		return err
+	}
+
+	ch.Language = l
+
+	err = c.db.ChannelUpdate(ch)
+	if err != nil {
+		return err
+	}
+
+	err = s.InteractionRespond(ic.Interaction, &dgo.InteractionResponse{
+		Type: dgo.InteractionResponseChannelMessageWithSource,
+		Data: &dgo.InteractionResponseData{
+			Content: fmt.Sprintf(
+				"Changed language of channel %s (%s) to %s",
+				dch.Name, dch.ID, l,
+			),
+			Flags: dgo.MessageFlagsEphemeral,
+		},
+	})
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+func (c ChannelsSetLang) Components() []Component {
+	return []Component{}
+}
+func (c ChannelsSetLang) Subcommands() []Command {
 	return []Command{}
 }
 
