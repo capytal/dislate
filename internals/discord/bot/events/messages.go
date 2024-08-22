@@ -31,7 +31,7 @@ func (h MessageCreate) Serve(s *dgo.Session, e *dgo.MessageCreate) {
 	}
 
 	ch, err := h.db.Channel(e.GuildID, e.ChannelID)
-	if err != nil && errors.Is(err, guilddb.ErrNotFound) {
+	if errors.Is(err, guilddb.ErrNotFound) {
 		h.log.Debug("Channel is not in database, ignoring.", slog.String("guild", e.GuildID), slog.String("channel", e.ChannelID))
 		return
 	} else if err != nil {
@@ -44,7 +44,7 @@ func (h MessageCreate) Serve(s *dgo.Session, e *dgo.MessageCreate) {
 	}
 
 	gc, err := h.db.ChannelGroup(ch.GuildID, ch.ID)
-	if err != nil && errors.Is(err, guilddb.ErrNotFound) {
+	if errors.Is(err, guilddb.ErrNotFound) {
 		h.log.Debug("Channel is not in a group, ignoring.", slog.String("guild", e.GuildID), slog.String("channel", e.ChannelID))
 		return
 	} else if err != nil {
@@ -168,7 +168,7 @@ func (h MessageCreate) Serve(s *dgo.Session, e *dgo.MessageCreate) {
 func (h MessageCreate) getMessage(m *dgo.Message, lang lang.Language) (guilddb.Message, error) {
 	msg, err := h.db.Message(m.GuildID, m.ChannelID, m.ID)
 
-	if err != nil && errors.Is(err, guilddb.ErrNotFound) {
+	if errors.Is(err, guilddb.ErrNotFound) {
 		if err := h.db.MessageInsert(guilddb.NewMessage(m.GuildID, m.ChannelID, m.ID, lang)); err != nil {
 			return guilddb.Message{}, err
 		}
@@ -185,7 +185,7 @@ func (h MessageCreate) getMessage(m *dgo.Message, lang lang.Language) (guilddb.M
 func (h MessageCreate) getTranslatedMessage(m, original *dgo.Message, lang lang.Language) (guilddb.Message, error) {
 	msg, err := h.db.Message(m.GuildID, m.ChannelID, m.ID)
 
-	if err != nil && errors.Is(err, guilddb.ErrNotFound) {
+	if errors.Is(err, guilddb.ErrNotFound) {
 		if err := h.db.MessageInsert(guilddb.NewTranslatedMessage(
 			m.GuildID,
 			m.ChannelID,

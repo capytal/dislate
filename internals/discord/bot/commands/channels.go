@@ -317,7 +317,7 @@ func (c ChannelsSetLang) Subcommands() []Command {
 
 func getChannel(db guilddb.GuildDB, guildID, channelID string) (gdb.Channel, error) {
 	ch, err := db.Channel(guildID, channelID)
-	if err != nil && errors.Is(err, gdb.ErrNotFound) {
+	if errors.Is(err, gdb.ErrNotFound) {
 		if err := db.ChannelInsert(gdb.NewChannel(guildID, channelID, lang.EN)); err != nil {
 			return gdb.Channel{}, err
 		}
@@ -334,7 +334,7 @@ func getChannel(db guilddb.GuildDB, guildID, channelID string) (gdb.Channel, err
 
 func getChannelInfo(db guilddb.GuildDB, ch gdb.Channel) (*dgo.MessageEmbed, error) {
 	group, err := db.ChannelGroup(ch.GuildID, ch.ID)
-	if err != nil && !errors.Is(err, gdb.ErrNotFound) {
+	if !errors.Is(err, gdb.ErrNotFound) {
 		return nil, err
 	}
 

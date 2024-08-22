@@ -468,7 +468,7 @@ func (db *SQLiteDB) Guild(ID string) (Guild, error) {
 	if err := db.sql.QueryRow(`
 		SELECT "ID" FROM guilds
 			WHERE "ID" = $1
-	`, ID).Scan(g.ID); err != nil && errors.Is(err, sql.ErrNoRows) {
+	`, ID).Scan(g.ID); errors.Is(err, sql.ErrNoRows) {
 		return Guild{}, errors.Join(ErrNotFound, err)
 	} else if err != nil {
 		return Guild{}, errors.Join(ErrInternal, err)
