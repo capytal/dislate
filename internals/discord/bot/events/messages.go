@@ -133,6 +133,10 @@ func (h MessageCreate) Serve(s *dgo.Session, e *dgo.MessageCreate) {
 				}
 			}
 
+			if tdm.GuildID == "" {
+				tdm.GuildID = e.Message.GuildID
+			}
+
 			_, err = h.getTranslatedMessage(tdm, e.Message, c.Language)
 			if err != nil {
 				h.log.Error("Error while trying to get/set translated message to database",
