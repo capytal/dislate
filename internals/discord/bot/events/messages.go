@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"slices"
 
 	"dislate/internals/guilddb"
 	"dislate/internals/translator"
@@ -85,6 +86,28 @@ func (h MessageCreate) Serve(s *dgo.Session, e *dgo.MessageCreate) {
 			continue
 		}
 		go func(c guilddb.Channel) {
+			uw, err := h.getUserWebhook(s, c.ID, e.Message.Author)
+			if err != nil {
+				h.log.Error("Error while trying to create user webhook",
+					slog.String("guild", e.Message.GuildID),
+					slog.String("channel", e.Message.ChannelID),
+					slog.Any("user", e.Message.Author),
+				)
+				_, err := s.ChannelMessageSendReply(
+					e.Message.ChannelID,
+					fmt.Sprintf("Error while trying to create user webhook %s", err.Error()),
+					e.Message.Reference(),
+				)
+				if err != nil {
+					h.log.Error("Error while trying to send error message",
+						slog.String("guild", e.Message.GuildID),
+						slog.String("channel", e.Message.ChannelID),
+						slog.String("message", e.Message.ID),
+						slog.String("err", err.Error()),
+					)
+				}
+			}
+
 			t, err := h.translator.Translate(ch.Language, c.Language, e.Message.Content)
 			if err != nil {
 				h.log.Error("Error while trying to translate message",
@@ -109,7 +132,12 @@ func (h MessageCreate) Serve(s *dgo.Session, e *dgo.MessageCreate) {
 				}
 			}
 
-			tdm, err := s.ChannelMessageSend(c.ID, t)
+			tdm, err := s.WebhookExecute(uw.ID, uw.Token, true, &dgo.WebhookParams{
+				AvatarURL: e.Message.Author.AvatarURL(""),
+				Username:  e.Message.Author.GlobalName,
+				Content:   t,
+			})
+			// tdm, err := s.ChannelMessageSend(c.ID, t)
 			if err != nil {
 				h.log.Error("Error while trying to send translated message",
 					slog.String("guild", e.Message.GuildID),
@@ -163,6 +191,29 @@ func (h MessageCreate) Serve(s *dgo.Session, e *dgo.MessageCreate) {
 
 	}
 
+}
+
+func (h MessageCreate) getUserWebhook(s *dgo.Session, channelID string, user *dgo.User) (*dgo.Webhook, error) {
+	var whName = "DISLATE_USER_WEBHOOK_" + user.ID
+
+	ws, err := s.ChannelWebhooks(channelID)
+	if err != nil {
+		return &dgo.Webhook{}, err
+	}
+	wi := slices.IndexFunc(ws, func(w *dgo.Webhook) bool {
+		return w.Name == whName
+	})
+
+	if wi > -1 {
+		return ws[wi], nil
+	}
+
+	w, err := s.WebhookCreate(channelID, whName, user.AvatarURL(""))
+	if err != nil {
+		return &dgo.Webhook{}, err
+	}
+
+	return w, nil
 }
 
 func (h MessageCreate) getMessage(m *dgo.Message, lang lang.Language) (guilddb.Message, error) {
