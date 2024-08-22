@@ -47,6 +47,11 @@ func (db *SQLiteDB) Prepare() error {
 			PRIMARY KEY(ID, GuildID),
 			FOREIGN KEY(GuildID) REFERENCES guilds(ID)
 		);
+	`); err != nil {
+		return errors.Join(ErrInternal, err)
+	}
+
+	if _, err := db.sql.Exec(`
 		CREATE TABLE IF NOT EXISTS channelGroups (
 			GuildID  text NOT NULL,
 			Channels text NOT NULL,
@@ -66,10 +71,8 @@ func (db *SQLiteDB) Prepare() error {
 			OriginChannelID text,
 			OriginID        text,
 			PRIMARY KEY(ID, ChannelID, GuildID),
-			FOREIGN KEY(ChannelID) REFERENCES channels(ID),
-			FOREIGN KEY(GuildID) REFERENCES guilds(ID),
-			FOREIGN KEY(OriginID) REFERENCES messages(ID),
-			FOREIGN KEY(OriginChannelID) REFERENCES channels(ID)
+			FOREIGN KEY(GuildID, ChannelID) REFERENCES channels(GuildID, ID),
+			FOREIGN KEY(GuildID, OriginChannelID, OriginID) REFERENCES messages(GuildID, ChannelID, ID)
 		);
 	`); err != nil {
 		return errors.Join(ErrInternal, err)
