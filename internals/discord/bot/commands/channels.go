@@ -31,9 +31,9 @@ func (c ManageChannel) Info() *dgo.ApplicationCommand {
 }
 func (c ManageChannel) Subcommands() []Command {
 	return []Command{
-		ChannelsInfo(c),
-		ChannelsLink(c),
-		ChannelsSetLang(c),
+		channelsInfo(c),
+		channelsLink(c),
+		channelsSetLang(c),
 	}
 }
 func (c ManageChannel) Handle(s *dgo.Session, i *dgo.InteractionCreate) error {
@@ -43,11 +43,11 @@ func (c ManageChannel) Components() []Component {
 	return []Component{}
 }
 
-type ChannelsInfo struct {
+type channelsInfo struct {
 	db gconf.DB
 }
 
-func (c ChannelsInfo) Info() *dgo.ApplicationCommand {
+func (c channelsInfo) Info() *dgo.ApplicationCommand {
 	var permissions int64 = dgo.PermissionManageChannels
 
 	return &dgo.ApplicationCommand{
@@ -64,7 +64,7 @@ func (c ChannelsInfo) Info() *dgo.ApplicationCommand {
 		}},
 	}
 }
-func (c ChannelsInfo) Handle(s *dgo.Session, ic *dgo.InteractionCreate) error {
+func (c channelsInfo) Handle(s *dgo.Session, ic *dgo.InteractionCreate) error {
 	opts := getOptions(ic.ApplicationCommandData().Options)
 
 	var err error
@@ -103,18 +103,18 @@ func (c ChannelsInfo) Handle(s *dgo.Session, ic *dgo.InteractionCreate) error {
 
 	return nil
 }
-func (c ChannelsInfo) Components() []Component {
+func (c channelsInfo) Components() []Component {
 	return []Component{}
 }
-func (c ChannelsInfo) Subcommands() []Command {
+func (c channelsInfo) Subcommands() []Command {
 	return []Command{}
 }
 
-type ChannelsLink struct {
+type channelsLink struct {
 	db gconf.DB
 }
 
-func (c ChannelsLink) Info() *dgo.ApplicationCommand {
+func (c channelsLink) Info() *dgo.ApplicationCommand {
 	var permissions int64 = dgo.PermissionManageChannels
 
 	return &dgo.ApplicationCommand{
@@ -139,7 +139,7 @@ func (c ChannelsLink) Info() *dgo.ApplicationCommand {
 		}},
 	}
 }
-func (c ChannelsLink) Handle(s *dgo.Session, ic *dgo.InteractionCreate) error {
+func (c channelsLink) Handle(s *dgo.Session, ic *dgo.InteractionCreate) error {
 	opts := getOptions(ic.ApplicationCommandData().Options)
 
 	var err error
@@ -216,18 +216,18 @@ func (c ChannelsLink) Handle(s *dgo.Session, ic *dgo.InteractionCreate) error {
 
 	return nil
 }
-func (c ChannelsLink) Components() []Component {
+func (c channelsLink) Components() []Component {
 	return []Component{}
 }
-func (c ChannelsLink) Subcommands() []Command {
+func (c channelsLink) Subcommands() []Command {
 	return []Command{}
 }
 
-type ChannelsSetLang struct {
+type channelsSetLang struct {
 	db gconf.DB
 }
 
-func (c ChannelsSetLang) Info() *dgo.ApplicationCommand {
+func (c channelsSetLang) Info() *dgo.ApplicationCommand {
 	var permissions int64 = dgo.PermissionManageChannels
 
 	return &dgo.ApplicationCommand{
@@ -253,7 +253,7 @@ func (c ChannelsSetLang) Info() *dgo.ApplicationCommand {
 		}},
 	}
 }
-func (c ChannelsSetLang) Handle(s *dgo.Session, ic *dgo.InteractionCreate) error {
+func (c channelsSetLang) Handle(s *dgo.Session, ic *dgo.InteractionCreate) error {
 	opts := getOptions(ic.ApplicationCommandData().Options)
 
 	var err error
@@ -309,10 +309,10 @@ func (c ChannelsSetLang) Handle(s *dgo.Session, ic *dgo.InteractionCreate) error
 
 	return nil
 }
-func (c ChannelsSetLang) Components() []Component {
+func (c channelsSetLang) Components() []Component {
 	return []Component{}
 }
-func (c ChannelsSetLang) Subcommands() []Command {
+func (c channelsSetLang) Subcommands() []Command {
 	return []Command{}
 }
 
