@@ -83,9 +83,8 @@ func (c loggerConfigChannel) Handle(s *dgo.Session, ic *dgo.InteractionCreate) e
 		return err
 	}
 
-	// FIXME: response message continuously on "thinking..."
 	err = s.InteractionRespond(ic.Interaction, &dgo.InteractionResponse{
-		Type: dgo.InteractionResponseDeferredChannelMessageWithSource,
+		Type: dgo.InteractionResponseChannelMessageWithSource,
 		Data: &dgo.InteractionResponseData{
 			Content: fmt.Sprintf("Logging channel changed to %s", *guild.Config.LoggingChannel),
 			Flags: dgo.MessageFlagsEphemeral,
