@@ -1,11 +1,12 @@
 package events
 
 import (
-	"errors"
-	"fmt"
+	e "errors"
 	"log/slog"
 	"slices"
 
+	"dislate/internals/discord/bot/errors"
+	"dislate/internals/discord/bot/gconf"
 	"dislate/internals/guilddb"
 	"dislate/internals/translator"
 	"dislate/internals/translator/lang"
@@ -13,71 +14,60 @@ import (
 	dgo "github.com/bwmarrin/discordgo"
 )
 
-type EventHandler[E any] interface {
-	Serve(*dgo.Session, E)
-}
-
 type MessageCreate struct {
-	log        *slog.Logger
-	db         guilddb.GuildDB
+	db         gconf.DB
 	translator translator.Translator
 }
 
-func NewMessageCreate(log *slog.Logger, db guilddb.GuildDB, t translator.Translator) MessageCreate {
-	return MessageCreate{log, db, t}
+func NewMessageCreate(db gconf.DB, t translator.Translator) MessageCreate {
+	return MessageCreate{db, t}
 }
-func (h MessageCreate) Serve(s *dgo.Session, e *dgo.MessageCreate) {
-	if e.Message.Author.Bot {
+func (h MessageCreate) Serve(s *dgo.Session, ev *dgo.MessageCreate) {
+	log := gconf.GetLogger(ev.GuildID, s, h.db)
+	if ev.Message.Author.Bot {
 		return
 	}
 
-	ch, err := h.db.Channel(e.GuildID, e.ChannelID)
-	if errors.Is(err, guilddb.ErrNotFound) {
-		h.log.Debug("Channel is not in database, ignoring.", slog.String("guild", e.GuildID), slog.String("channel", e.ChannelID))
+	ch, err := h.db.Channel(ev.GuildID, ev.ChannelID)
+	if e.Is(err, guilddb.ErrNotFound) {
+		log.Debug("Channel is not in database, ignoring.",
+			slog.String("guild", ev.GuildID),
+			slog.String("channel", ev.ChannelID),
+		)
 		return
 	} else if err != nil {
-		h.log.Error("Error while trying to get channel from database",
-			slog.String("guild", e.GuildID),
-			slog.String("channel", e.ChannelID),
+		errors.NewErrDatabase(
+			slog.String("guild", ev.GuildID),
+			slog.String("channel", ev.ChannelID),
 			slog.String("err", err.Error()),
-		)
+		).LogReply(log, s, ev.Message)
 		return
 	}
 
 	gc, err := h.db.ChannelGroup(ch.GuildID, ch.ID)
-	if errors.Is(err, guilddb.ErrNotFound) {
-		h.log.Debug("Channel is not in a group, ignoring.", slog.String("guild", e.GuildID), slog.String("channel", e.ChannelID))
+	if e.Is(err, guilddb.ErrNotFound) {
+		log.Debug("Channel is not in a group, ignoring.",
+			slog.String("guild", ev.GuildID),
+			slog.String("channel", ev.ChannelID),
+		)
 		return
 	} else if err != nil {
-		h.log.Error("Error while trying to get channel group from database",
-			slog.String("guild", e.GuildID),
-			slog.String("channel", e.ChannelID),
+		errors.NewErrDatabase(
+			slog.String("guild", ev.GuildID),
+			slog.String("channel", ev.ChannelID),
 			slog.String("err", err.Error()),
-		)
+		).LogReply(log, s, ev.Message)
 		return
 	}
 
-	_, err = h.getMessage(e.Message, ch.Language)
+	_, err = h.getMessage(ev.Message, ch.Language)
 	if err != nil {
-		h.log.Error("Error while trying to get/set message to database",
-			slog.String("guild", e.Message.GuildID),
-			slog.String("channel", e.Message.ChannelID),
-			slog.String("message", e.Message.ID),
+		errors.NewErrDatabase(
+			slog.String("guild", ev.Message.GuildID),
+			slog.String("channel", ev.Message.ChannelID),
+			slog.String("message", ev.Message.ID),
 			slog.String("err", err.Error()),
-		)
-		_, err := s.ChannelMessageSendReply(
-			e.Message.ChannelID,
-			fmt.Sprintf("Error while trying to send message to database. %s", err.Error()),
-			e.Message.Reference(),
-		)
-		if err != nil {
-			h.log.Error("Error while trying to send error message",
-				slog.String("guild", e.Message.GuildID),
-				slog.String("channel", e.Message.ChannelID),
-				slog.String("message", e.Message.ID),
-				slog.String("err", err.Error()),
-			)
-		}
+		).LogReply(log, s, ev.Message)
 		return
 	}
 
@@ -86,106 +76,53 @@ func (h MessageCreate) Serve(s *dgo.Session, e *dgo.MessageCreate) {
 			continue
 		}
 		go func(c guilddb.Channel) {
-			uw, err := h.getUserWebhook(s, c.ID, e.Message.Author)
+			uw, err := h.getUserWebhook(s, c.ID, ev.Message.Author)
 			if err != nil {
-				h.log.Error("Error while trying to create user webhook",
-					slog.String("guild", e.Message.GuildID),
-					slog.String("channel", e.Message.ChannelID),
-					slog.Any("user", e.Message.Author),
-				)
-				_, err := s.ChannelMessageSendReply(
-					e.Message.ChannelID,
-					fmt.Sprintf("Error while trying to create user webhook %s", err.Error()),
-					e.Message.Reference(),
-				)
-				if err != nil {
-					h.log.Error("Error while trying to send error message",
-						slog.String("guild", e.Message.GuildID),
-						slog.String("channel", e.Message.ChannelID),
-						slog.String("message", e.Message.ID),
-						slog.String("err", err.Error()),
-					)
-				}
+				errors.NewErrUserWebhook(
+					slog.String("guild", ev.Message.GuildID),
+					slog.String("channel", ev.Message.ChannelID),
+					slog.Any("user", ev.Message.Author),
+				).LogReply(log, s, ev.Message)
 			}
 
-			t, err := h.translator.Translate(ch.Language, c.Language, e.Message.Content)
+			t, err := h.translator.Translate(ch.Language, c.Language, ev.Message.Content)
 			if err != nil {
-				h.log.Error("Error while trying to translate message",
-					slog.String("guild", e.Message.GuildID),
-					slog.String("channel", e.Message.ChannelID),
-					slog.String("message", e.Message.ID),
-					slog.String("content", e.Message.Content),
+				errors.New("Error while trying to translate message",
+					slog.String("guild", ev.Message.GuildID),
+					slog.String("channel", ev.Message.ChannelID),
+					slog.String("message", ev.Message.ID),
+					slog.String("content", ev.Message.Content),
 					slog.String("err", err.Error()),
-				)
-				_, err := s.ChannelMessageSendReply(
-					e.Message.ChannelID,
-					fmt.Sprintf("Error while trying to translate message. %s", err.Error()),
-					e.Message.Reference(),
-				)
-				if err != nil {
-					h.log.Error("Error while trying to send error message",
-						slog.String("guild", e.Message.GuildID),
-						slog.String("channel", e.Message.ChannelID),
-						slog.String("message", e.Message.ID),
-						slog.String("err", err.Error()),
-					)
-				}
+				).LogReply(log, s, ev.Message)
 			}
 
 			tdm, err := s.WebhookExecute(uw.ID, uw.Token, true, &dgo.WebhookParams{
-				AvatarURL: e.Message.Author.AvatarURL(""),
-				Username:  e.Message.Author.GlobalName,
+				AvatarURL: ev.Message.Author.AvatarURL(""),
+				Username:  ev.Message.Author.GlobalName,
 				Content:   t,
 			})
-			// tdm, err := s.ChannelMessageSend(c.ID, t)
 			if err != nil {
-				h.log.Error("Error while trying to send translated message",
-					slog.String("guild", e.Message.GuildID),
-					slog.String("channel", e.Message.ChannelID),
-					slog.String("message", e.Message.ID),
-					slog.String("content", e.Message.Content),
+				errors.NewErrUserWebhook(
+					slog.String("guild", ev.Message.GuildID),
+					slog.String("channel", ev.Message.ChannelID),
+					slog.String("message", ev.Message.ID),
+					slog.String("content", ev.Message.Content),
 					slog.String("err", err.Error()),
-				)
-				_, err := s.ChannelMessageSendReply(
-					e.Message.ChannelID,
-					fmt.Sprintf("Error while trying to send translated message. %s", err.Error()),
-					e.Message.Reference(),
-				)
-				if err != nil {
-					h.log.Error("Error while trying to send error message",
-						slog.String("guild", e.Message.GuildID),
-						slog.String("channel", e.Message.ChannelID),
-						slog.String("message", e.Message.ID),
-						slog.String("err", err.Error()),
-					)
-				}
+				).LogReply(log, s, ev.Message)
 			}
 
 			if tdm.GuildID == "" {
-				tdm.GuildID = e.Message.GuildID
+				tdm.GuildID = ev.Message.GuildID
 			}
 
-			_, err = h.getTranslatedMessage(tdm, e.Message, c.Language)
+			_, err = h.getTranslatedMessage(tdm, ev.Message, c.Language)
 			if err != nil {
-				h.log.Error("Error while trying to get/set translated message to database",
-					slog.String("guild", e.Message.GuildID),
-					slog.String("channel", e.Message.ChannelID),
-					slog.String("message", e.Message.ID),
+				errors.NewErrDatabase(
+					slog.String("guild", ev.Message.GuildID),
+					slog.String("channel", ev.Message.ChannelID),
+					slog.String("message", ev.Message.ID),
 					slog.String("err", err.Error()),
-				)
-				_, err := s.ChannelMessageSendReply(
-					e.Message.ChannelID,
-					fmt.Sprintf("Error while trying to send translated message to database. %s", err.Error()),
-					e.Message.Reference(),
-				)
-				if err != nil {
-					h.log.Error("Error while trying to send error message",
-						slog.String("guild", e.Message.GuildID),
-						slog.String("channel", e.Message.ChannelID),
-						slog.String("message", e.Message.ID),
-						slog.String("err", err.Error()),
-					)
-				}
+				).LogReply(log, s, ev.Message)
 			}
 		}(c)
 
@@ -219,7 +156,7 @@ func (h MessageCreate) getUserWebhook(s *dgo.Session, channelID string, user *dg
 func (h MessageCreate) getMessage(m *dgo.Message, lang lang.Language) (guilddb.Message, error) {
 	msg, err := h.db.Message(m.GuildID, m.ChannelID, m.ID)
 
-	if errors.Is(err, guilddb.ErrNotFound) {
+	if e.Is(err, guilddb.ErrNotFound) {
 		if err := h.db.MessageInsert(guilddb.NewMessage(m.GuildID, m.ChannelID, m.ID, lang)); err != nil {
 			return guilddb.Message{}, err
 		}
@@ -236,7 +173,7 @@ func (h MessageCreate) getMessage(m *dgo.Message, lang lang.Language) (guilddb.M
 func (h MessageCreate) getTranslatedMessage(m, original *dgo.Message, lang lang.Language) (guilddb.Message, error) {
 	msg, err := h.db.Message(m.GuildID, m.ChannelID, m.ID)
 
-	if errors.Is(err, guilddb.ErrNotFound) {
+	if e.Is(err, guilddb.ErrNotFound) {
 		if err := h.db.MessageInsert(guilddb.NewTranslatedMessage(
 			m.GuildID,
 			m.ChannelID,

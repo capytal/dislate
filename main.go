@@ -1,15 +1,17 @@
 package main
 
 import (
-	"dislate/internals/discord/bot"
-	"dislate/internals/guilddb"
-	"dislate/internals/translator"
 	"flag"
 	"log/slog"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"dislate/internals/discord/bot"
+	"dislate/internals/discord/bot/gconf"
+	"dislate/internals/guilddb"
+	"dislate/internals/translator"
 
 	"github.com/charmbracelet/log"
 )
@@ -30,12 +32,12 @@ func init() {
 
 func main() {
 	logger := slog.New(log.NewWithOptions(os.Stderr, log.Options{
-		TimeFormat: time.DateTime,
+		TimeFormat:      time.DateTime,
 		ReportTimestamp: true,
-		ReportCaller: true,
+		ReportCaller:    true,
 	}))
 
-	db, err := guilddb.NewSQLiteDB(*database_file)
+	db, err := guilddb.NewSQLiteDB[gconf.ConfigString](*database_file)
 	if err != nil {
 		logger.Error("Failed to open database connection", slog.String("err", err.Error()))
 		return

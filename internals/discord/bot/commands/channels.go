@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"dislate/internals/discord/bot/gconf"
 	"dislate/internals/guilddb"
 	gdb "dislate/internals/guilddb"
 	"dislate/internals/translator/lang"
@@ -13,10 +14,10 @@ import (
 )
 
 type ManageChannel struct {
-	db gdb.GuildDB
+	db gconf.DB
 }
 
-func NewManageChannel(db gdb.GuildDB) ManageChannel {
+func NewManageChannel(db gconf.DB) ManageChannel {
 	return ManageChannel{db}
 }
 func (c ManageChannel) Info() *dgo.ApplicationCommand {
@@ -43,7 +44,7 @@ func (c ManageChannel) Components() []Component {
 }
 
 type ChannelsInfo struct {
-	db gdb.GuildDB
+	db gconf.DB
 }
 
 func (c ChannelsInfo) Info() *dgo.ApplicationCommand {
@@ -110,7 +111,7 @@ func (c ChannelsInfo) Subcommands() []Command {
 }
 
 type ChannelsLink struct {
-	db guilddb.GuildDB
+	db gconf.DB
 }
 
 func (c ChannelsLink) Info() *dgo.ApplicationCommand {
@@ -223,7 +224,7 @@ func (c ChannelsLink) Subcommands() []Command {
 }
 
 type ChannelsSetLang struct {
-	db guilddb.GuildDB
+	db gconf.DB
 }
 
 func (c ChannelsSetLang) Info() *dgo.ApplicationCommand {
@@ -315,7 +316,7 @@ func (c ChannelsSetLang) Subcommands() []Command {
 	return []Command{}
 }
 
-func getChannel(db guilddb.GuildDB, guildID, channelID string) (gdb.Channel, error) {
+func getChannel(db gconf.DB, guildID, channelID string) (gdb.Channel, error) {
 	ch, err := db.Channel(guildID, channelID)
 	if errors.Is(err, gdb.ErrNotFound) {
 		if err := db.ChannelInsert(gdb.NewChannel(guildID, channelID, lang.EN)); err != nil {
@@ -332,7 +333,7 @@ func getChannel(db guilddb.GuildDB, guildID, channelID string) (gdb.Channel, err
 	return ch, nil
 }
 
-func getChannelInfo(db guilddb.GuildDB, ch gdb.Channel) (*dgo.MessageEmbed, error) {
+func getChannelInfo(db gconf.DB, ch gdb.Channel) (*dgo.MessageEmbed, error) {
 	group, err := db.ChannelGroup(ch.GuildID, ch.ID)
 	if !errors.Is(err, gdb.ErrNotFound) {
 		return nil, err

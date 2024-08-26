@@ -13,6 +13,7 @@ import (
 
 func (b *Bot) registerCommands() error {
 	cs := []commands.Command{
+		commands.NewMagageConfig(b.db),
 		commands.NewManageChannel(b.db),
 	}
 

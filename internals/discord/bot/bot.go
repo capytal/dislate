@@ -1,22 +1,23 @@
 package bot
 
 import (
-	"dislate/internals/guilddb"
-	"dislate/internals/translator"
 	"log/slog"
+
+	"dislate/internals/discord/bot/gconf"
+	"dislate/internals/translator"
 
 	dgo "github.com/bwmarrin/discordgo"
 )
 
 type Bot struct {
 	token      string
-	db         guilddb.GuildDB
+	db         gconf.DB
 	translator translator.Translator
 	session    *dgo.Session
 	logger     *slog.Logger
 }
 
-func NewBot(token string, db guilddb.GuildDB, translator translator.Translator, logger *slog.Logger) (*Bot, error) {
+func NewBot(token string, db gconf.DB, translator translator.Translator, logger *slog.Logger) (*Bot, error) {
 	discord, err := dgo.New("Bot " + token)
 	if err != nil {
 		return &Bot{}, err
