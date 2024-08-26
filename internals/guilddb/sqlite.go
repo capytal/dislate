@@ -13,26 +13,27 @@ import (
 	_ "github.com/tursodatabase/go-libsql"
 )
 
-type SQLiteDB struct {
+type SQLiteDB[C any] struct {
 	sql *sql.DB
 }
 
-func NewSQLiteDB(file string) (*SQLiteDB, error) {
+func NewSQLiteDB[C any](file string) (*SQLiteDB[C], error) {
 	db, err := sql.Open("libsql", file)
 	if err != nil {
-		return &SQLiteDB{}, err
+		return &SQLiteDB[C]{}, err
 	}
-	return &SQLiteDB{db}, nil
+	return &SQLiteDB[C]{db}, nil
 }
 
-func (db *SQLiteDB) Close() error {
+func (db *SQLiteDB[C]) Close() error {
 	return db.sql.Close()
 }
 
-func (db *SQLiteDB) Prepare() error {
+func (db *SQLiteDB[C]) Prepare() error {
 	if _, err := db.sql.Exec(`
 		CREATE TABLE IF NOT EXISTS guilds (
 			ID text NOT NULL,
+			Config text NOT NULL,
 			PRIMARY KEY(ID)
 		);
 	`); err != nil {
@@ -81,19 +82,19 @@ func (db *SQLiteDB) Prepare() error {
 	return nil
 }
 
-func (db *SQLiteDB) Message(guildID, channelID, messageID string) (Message, error) {
+func (db *SQLiteDB[C]) Message(guildID, channelID, messageID string) (Message, error) {
 	return db.selectMessage(`
 		WHERE "GuildID" = $1 AND "ChannelID" = $2 AND "ID" = $3
 	`, guildID, channelID, messageID)
 }
 
-func (db *SQLiteDB) MessagesWithOrigin(guildID, originChannelID, originID string) ([]Message, error) {
+func (db *SQLiteDB[C]) MessagesWithOrigin(guildID, originChannelID, originID string) ([]Message, error) {
 	return db.selectMessages(`
 		WHERE "GuildID" = $1 AND "OriginChannelID" = $2 AND "OriginID" = $3
 	`, guildID, originChannelID, originID)
 }
 
-func (db *SQLiteDB) MessageWithOriginByLang(
+func (db *SQLiteDB[C]) MessageWithOriginByLang(
 	guildID, originChannelID, originID string,
 	language lang.Language,
 ) (Message, error) {
@@ -102,7 +103,7 @@ func (db *SQLiteDB) MessageWithOriginByLang(
 	`, guildID, originChannelID, originID, language)
 }
 
-func (db *SQLiteDB) MessageInsert(m Message) error {
+func (db *SQLiteDB[C]) MessageInsert(m Message) error {
 	_, err := db.Channel(m.GuildID, m.ChannelID)
 	if errors.Is(err, ErrNotFound) {
 		return errors.Join(
@@ -131,7 +132,7 @@ func (db *SQLiteDB) MessageInsert(m Message) error {
 	return nil
 }
 
-func (db *SQLiteDB) MessageUpdate(m Message) error {
+func (db *SQLiteDB[C]) MessageUpdate(m Message) error {
 	r, err := db.sql.Exec(`
 		UPDATE messages
 			SET Language = $1, OriginChannelID = $2, OriginID = $3
@@ -153,7 +154,7 @@ func (db *SQLiteDB) MessageUpdate(m Message) error {
 	return nil
 }
 
-func (db *SQLiteDB) MessageDelete(m Message) error {
+func (db *SQLiteDB[C]) MessageDelete(m Message) error {
 	_, err := db.sql.Exec(`
 		DELETE channels
 			WHERE "GuildID" = $1 AND "OriginChannelID" = $2 AND "OriginID" = $3
@@ -177,7 +178,7 @@ func (db *SQLiteDB) MessageDelete(m Message) error {
 	return nil
 }
 
-func (db *SQLiteDB) selectMessage(query string, args ...any) (Message, error) {
+func (db *SQLiteDB[C]) selectMessage(query string, args ...any) (Message, error) {
 	var m Message
 	err := db.sql.QueryRow(fmt.Sprintf(`
 		SELECT GuildID, ChannelID, ID, Language, OriginChannelID, OriginID FROM messages
@@ -194,7 +195,7 @@ func (db *SQLiteDB) selectMessage(query string, args ...any) (Message, error) {
 	return m, nil
 }
 
-func (db *SQLiteDB) selectMessages(query string, args ...any) ([]Message, error) {
+func (db *SQLiteDB[C]) selectMessages(query string, args ...any) ([]Message, error) {
 	r, err := db.sql.Query(fmt.Sprintf(`
 		SELECT GuildID, ChannelID, ID, Language, OriginChannelID, OriginID FROM messages
 			%s
@@ -229,13 +230,13 @@ func (db *SQLiteDB) selectMessages(query string, args ...any) ([]Message, error)
 	return ms, err
 }
 
-func (db *SQLiteDB) Channel(guildID, ID string) (Channel, error) {
+func (db *SQLiteDB[C]) Channel(guildID, ID string) (Channel, error) {
 	return db.selectChannel(`
 		WHERE "GuildID" = $1 AND "ID" = $2
 	`, guildID, ID)
 }
 
-func (db *SQLiteDB) ChannelInsert(c Channel) error {
+func (db *SQLiteDB[C]) ChannelInsert(c Channel) error {
 	r, err := db.sql.Exec(`
 		INSERT OR IGNORE INTO channels (GuildID, ID, Language)
 			VALUES ($1, $2, $3)
@@ -250,7 +251,7 @@ func (db *SQLiteDB) ChannelInsert(c Channel) error {
 	return nil
 }
 
-func (db *SQLiteDB) ChannelUpdate(c Channel) error {
+func (db *SQLiteDB[C]) ChannelUpdate(c Channel) error {
 	r, err := db.sql.Exec(`
 		UPDATE channels
 			SET Language = $1
@@ -266,7 +267,7 @@ func (db *SQLiteDB) ChannelUpdate(c Channel) error {
 	return nil
 }
 
-func (db *SQLiteDB) ChannelDelete(c Channel) error {
+func (db *SQLiteDB[C]) ChannelDelete(c Channel) error {
 	r, err := db.sql.Exec(`
 		DELETE channels
 			WHERE "GuildID" = $1 AND "ID" = $2
@@ -281,7 +282,7 @@ func (db *SQLiteDB) ChannelDelete(c Channel) error {
 	return nil
 }
 
-func (db *SQLiteDB) ChannelGroup(guildID, channelID string) (ChannelGroup, error) {
+func (db *SQLiteDB[C]) ChannelGroup(guildID, channelID string) (ChannelGroup, error) {
 
 	var j string
 	err := db.sql.QueryRow(fmt.Sprintf(`
@@ -321,7 +322,7 @@ func (db *SQLiteDB) ChannelGroup(guildID, channelID string) (ChannelGroup, error
 	return cs, nil
 }
 
-func (db *SQLiteDB) ChannelGroupInsert(g ChannelGroup) error {
+func (db *SQLiteDB[C]) ChannelGroupInsert(g ChannelGroup) error {
 	if len(g) == 0 {
 		return ErrNoAffect
 	}
@@ -351,7 +352,7 @@ func (db *SQLiteDB) ChannelGroupInsert(g ChannelGroup) error {
 	return nil
 }
 
-func (db *SQLiteDB) ChannelGroupUpdate(g ChannelGroup) error {
+func (db *SQLiteDB[C]) ChannelGroupUpdate(g ChannelGroup) error {
 	if len(g) != 0 {
 		return nil
 	}
@@ -382,7 +383,7 @@ func (db *SQLiteDB) ChannelGroupUpdate(g ChannelGroup) error {
 	return nil
 }
 
-func (db *SQLiteDB) ChannelGroupDelete(g ChannelGroup) error {
+func (db *SQLiteDB[C]) ChannelGroupDelete(g ChannelGroup) error {
 	if len(g) != 0 {
 		return nil
 	}
@@ -411,7 +412,7 @@ func (db *SQLiteDB) ChannelGroupDelete(g ChannelGroup) error {
 	return nil
 }
 
-func (db *SQLiteDB) selectChannel(query string, args ...any) (Channel, error) {
+func (db *SQLiteDB[C]) selectChannel(query string, args ...any) (Channel, error) {
 	var c Channel
 	err := db.sql.QueryRow(fmt.Sprintf(`
 		SELECT GuildID, ID, Language FROM channels
@@ -427,7 +428,7 @@ func (db *SQLiteDB) selectChannel(query string, args ...any) (Channel, error) {
 	return c, nil
 }
 
-func (db *SQLiteDB) selectChannels(query string, args ...any) ([]Channel, error) {
+func (db *SQLiteDB[C]) selectChannels(query string, args ...any) ([]Channel, error) {
 	r, err := db.sql.Query(fmt.Sprintf(`
 		SELECT GuildID, ID, Language FROM channels
 			%s
@@ -462,26 +463,40 @@ func (db *SQLiteDB) selectChannels(query string, args ...any) ([]Channel, error)
 	return cs, err
 }
 
-func (db *SQLiteDB) Guild(ID string) (Guild, error) {
-	var g Guild
-
-	if err := db.sql.QueryRow(`
-		SELECT "ID" FROM guilds
-			WHERE "ID" = $1
-	`, ID).Scan(g.ID); errors.Is(err, sql.ErrNoRows) {
-		return Guild{}, errors.Join(ErrNotFound, err)
-	} else if err != nil {
-		return Guild{}, errors.Join(ErrInternal, err)
+func (db *SQLiteDB[C]) Guild(ID string) (Guild[C], error) {
+	var g struct {
+		ID     string
+		Config string
 	}
 
-	return g, nil
+	if err := db.sql.QueryRow(`
+		SELECT "ID", "Config" FROM guilds
+			WHERE "ID" = $1
+	`, ID).Scan(&g.ID, &g.Config); errors.Is(err, sql.ErrNoRows) {
+		return Guild[C]{}, errors.Join(ErrNotFound, err)
+	} else if err != nil {
+		return Guild[C]{}, errors.Join(ErrInternal, err)
+	}
+
+	var c C
+	err := json.Unmarshal([]byte(g.Config), &c)
+	if err != nil {
+		return Guild[C]{}, errors.Join(ErrConfigParsing, err)
+	}
+
+	return Guild[C]{g.ID, c}, nil
 }
 
-func (db *SQLiteDB) GuildInsert(g Guild) error {
+func (db *SQLiteDB[C]) GuildInsert(g Guild[C]) error {
+	j, err := json.Marshal(g.Config)
+	if err != nil {
+		return errors.Join(ErrConfigParsing, err)
+	}
+
 	r, err := db.sql.Exec(`
-		INSERT OR IGNORE INTO guilds (ID)
-			VALUES ($1)
-	`, g.ID)
+		INSERT OR IGNORE INTO guilds (ID, Config)
+			VALUES ($1, $2)
+	`, g.ID, string(j))
 
 	if err != nil {
 		return errors.Join(ErrInternal, err)
@@ -492,7 +507,28 @@ func (db *SQLiteDB) GuildInsert(g Guild) error {
 	return nil
 }
 
-func (db *SQLiteDB) GuildDelete(g Guild) error {
+func (db *SQLiteDB[C]) GuildUpdate(g Guild[C]) error {
+	j, err := json.Marshal(g.Config)
+	if err != nil {
+		return errors.Join(ErrConfigParsing, err)
+	}
+
+	r, err := db.sql.Exec(fmt.Sprintf(`
+		UPDATE guilds
+			SET "Config" = '%s'
+			WHERE "ID" = '%s'
+	`, string(j), g.ID))
+
+	if err != nil {
+		return errors.Join(ErrInternal, err)
+	} else if rows, _ := r.RowsAffected(); rows == 0 {
+		return ErrNoAffect
+	}
+
+	return nil
+}
+
+func (db *SQLiteDB[C]) GuildDelete(g Guild[C]) error {
 	r, err := db.sql.Exec(`
 		DELETE FROM guilds
 			WHERE "ID" = $1

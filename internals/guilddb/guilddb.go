@@ -5,12 +5,13 @@ import (
 	"errors"
 )
 
-type Guild struct {
-	ID string
+type Guild[C any] struct {
+	ID     string
+	Config C
 }
 
-func NewGuild(ID string) Guild {
-	return Guild{ID}
+func NewGuild[C any](ID string, config C) Guild[C] {
+	return Guild[C]{ID, config}
 }
 
 type Channel struct {
@@ -45,7 +46,7 @@ func NewTranslatedMessage(
 	return Message{GuildID, ChannelID, ID, lang, &OriginChannelID, &OriginID}
 }
 
-type GuildDB interface {
+type GuildDB[C any] interface {
 	// Selects and returns a Message from the database, based on the
 	// key pair of Channel's ID and Message's ID.
 	//
@@ -126,16 +127,20 @@ type GuildDB interface {
 	// Selects and returns a Guild from the database.
 	//
 	// Will return ErrNotFound if no Guild is found or ErrInternal.
-	Guild(ID string) (Guild, error)
+	Guild(ID string) (Guild[C], error)
 	// Inserts a new Guild object in the database. Guild.ID must be unique and
 	// not already in the database.
 	//
 	// Will return ErrNoAffect if the object already exists or ErrInternal.
-	GuildInsert(g Guild) error
+	GuildInsert(g Guild[C]) error
 	// Delete a Guild from the database. Guild.ID is used to find the object.
 	//
 	// Will return ErrNoAffect if no object was deleted or ErrInternal.
-	GuildDelete(g Guild) error
+	GuildDelete(g Guild[C]) error
+	// Updates the Guild object in the database.
+	//
+	// Will return ErrNoAffect if no object was updated or ErrInternal.
+	GuildUpdate(g Guild[C]) error
 }
 
 var ErrNoAffect = errors.New("Not able to affect anything in the database")
@@ -143,3 +148,4 @@ var ErrNotFound = errors.New("Object not found in the database")
 var ErrPreconditionFailed = errors.New("Precondition failed")
 var ErrInvalidObject = errors.New("Invalid object")
 var ErrInternal = errors.New("Internal error while trying to use database")
+var ErrConfigParsing = errors.New("Error while parsing Guild's config")
