@@ -119,10 +119,10 @@ func (c loggerConfigLevel) Info() *dgo.ApplicationCommand {
 			Name: "log-level",
 			Description: "The logging level of messages and errors",
 			Choices: []*dgo.ApplicationCommandOptionChoice{
-				{Name: "Debug", Value: "debug"},
-				{Name: "Info", Value: "info"},
-				{Name: "Warn", Value: "warn"},
-				{Name: "Error", Value: "error"},
+				{Name: "Debug", Value: slog.LevelDebug.String()},
+				{Name: "Info", Value: slog.LevelInfo.String()},
+				{Name: "Warn", Value: slog.LevelWarn.String()},
+				{Name: "Error", Value: slog.LevelError.String()},
 			},
 		}},
 	}
@@ -138,17 +138,9 @@ func (c loggerConfigLevel) Handle(s *dgo.Session, ic *dgo.InteractionCreate) err
 	}
 
 	var l slog.Level
-	switch opt.Value {
-	case "debug":
-		l = slog.LevelDebug
-	case "info":
-		l = slog.LevelInfo
-	case "warn":
-		l = slog.LevelWarn
-	case "error":
-		l = slog.LevelError
-	default:
-		return e.New("Parameter log-level is not a valid value")
+	err = l.UnmarshalText([]byte(opt.StringValue()))
+	if err != nil {
+		return e.Join(e.New("Parameter log-level is not a valid value"), err)
 	}
 
 	guild, err := c.db.Guild(ic.GuildID)
