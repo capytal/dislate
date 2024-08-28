@@ -88,7 +88,9 @@ func (db *SQLiteDB[C]) Message(guildID, channelID, messageID string) (Message, e
 	`, guildID, channelID, messageID)
 }
 
-func (db *SQLiteDB[C]) MessagesWithOrigin(guildID, originChannelID, originID string) ([]Message, error) {
+func (db *SQLiteDB[C]) MessagesWithOrigin(
+	guildID, originChannelID, originID string,
+) ([]Message, error) {
 	return db.selectMessages(`
 		WHERE "GuildID" = $1 AND "OriginChannelID" = $2 AND "OriginID" = $3
 	`, guildID, originChannelID, originID)
@@ -156,15 +158,15 @@ func (db *SQLiteDB[C]) MessageUpdate(m Message) error {
 
 func (db *SQLiteDB[C]) MessageDelete(m Message) error {
 	_, err := db.sql.Exec(`
-		DELETE channels
+		DELETE FROM messages
 			WHERE "GuildID" = $1 AND "OriginChannelID" = $2 AND "OriginID" = $3
 	`, m.GuildID, m.ChannelID, m.ID)
-	if err != nil {
+	if err != nil && !errors.Is(err, ErrNoAffect) {
 		return errors.Join(ErrInternal, err)
 	}
 
 	r, err := db.sql.Exec(`
-		DELETE channels
+		DELETE FROM messages
 			WHERE "GuildID" = $1 AND "ChannelID" = $2 AND "ID" = $3
 	`, m.GuildID, m.ChannelID, m.ID)
 
@@ -267,7 +269,7 @@ func (db *SQLiteDB[C]) ChannelUpdate(c Channel) error {
 
 func (db *SQLiteDB[C]) ChannelDelete(c Channel) error {
 	r, err := db.sql.Exec(`
-		DELETE channels
+		DELETE FROM channels
 			WHERE "GuildID" = $1 AND "ID" = $2
 	`, c.ID, c.ID)
 
@@ -309,7 +311,10 @@ func (db *SQLiteDB[C]) ChannelGroup(guildID, channelID string) (ChannelGroup, er
 	if errors.Is(err, ErrNotFound) || len(cs) != len(ids) {
 		return ChannelGroup{}, errors.Join(
 			ErrPreconditionFailed,
-			fmt.Errorf("ChannelGroup has Channels that doesn't exist in the database, group: %s", ids),
+			fmt.Errorf(
+				"ChannelGroup has Channels that doesn't exist in the database, group: %s",
+				ids,
+			),
 			err,
 		)
 	} else if err != nil {
