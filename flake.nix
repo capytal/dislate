@@ -25,7 +25,10 @@
           sqlite
           sqlitebrowser
           go
+          gofumpt
           golangci-lint
+          golines
+          gotools
           delve
           docker-compose
           (templ system)

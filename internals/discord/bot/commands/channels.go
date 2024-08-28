@@ -20,6 +20,7 @@ type ManageChannel struct {
 func NewManageChannel(db gconf.DB) ManageChannel {
 	return ManageChannel{db}
 }
+
 func (c ManageChannel) Info() *dgo.ApplicationCommand {
 	var permissions int64 = dgo.PermissionManageChannels
 
@@ -29,6 +30,7 @@ func (c ManageChannel) Info() *dgo.ApplicationCommand {
 		DefaultMemberPermissions: &permissions,
 	}
 }
+
 func (c ManageChannel) Subcommands() []Command {
 	return []Command{
 		channelsInfo(c),
@@ -36,9 +38,11 @@ func (c ManageChannel) Subcommands() []Command {
 		channelsSetLang(c),
 	}
 }
+
 func (c ManageChannel) Handle(s *dgo.Session, i *dgo.InteractionCreate) error {
 	return nil
 }
+
 func (c ManageChannel) Components() []Component {
 	return []Component{}
 }
@@ -64,6 +68,7 @@ func (c channelsInfo) Info() *dgo.ApplicationCommand {
 		}},
 	}
 }
+
 func (c channelsInfo) Handle(s *dgo.Session, ic *dgo.InteractionCreate) error {
 	opts := getOptions(ic.ApplicationCommandData().Options)
 
@@ -96,16 +101,17 @@ func (c channelsInfo) Handle(s *dgo.Session, ic *dgo.InteractionCreate) error {
 			Flags:  dgo.MessageFlagsEphemeral,
 		},
 	})
-
 	if err != nil {
 		return err
 	}
 
 	return nil
 }
+
 func (c channelsInfo) Components() []Component {
 	return []Component{}
 }
+
 func (c channelsInfo) Subcommands() []Command {
 	return []Command{}
 }
@@ -139,6 +145,7 @@ func (c channelsLink) Info() *dgo.ApplicationCommand {
 		}},
 	}
 }
+
 func (c channelsLink) Handle(s *dgo.Session, ic *dgo.InteractionCreate) error {
 	opts := getOptions(ic.ApplicationCommandData().Options)
 
@@ -209,16 +216,17 @@ func (c channelsLink) Handle(s *dgo.Session, ic *dgo.InteractionCreate) error {
 			Flags: dgo.MessageFlagsEphemeral,
 		},
 	})
-
 	if err != nil {
 		return err
 	}
 
 	return nil
 }
+
 func (c channelsLink) Components() []Component {
 	return []Component{}
 }
+
 func (c channelsLink) Subcommands() []Command {
 	return []Command{}
 }
@@ -253,6 +261,7 @@ func (c channelsSetLang) Info() *dgo.ApplicationCommand {
 		}},
 	}
 }
+
 func (c channelsSetLang) Handle(s *dgo.Session, ic *dgo.InteractionCreate) error {
 	opts := getOptions(ic.ApplicationCommandData().Options)
 
@@ -302,16 +311,17 @@ func (c channelsSetLang) Handle(s *dgo.Session, ic *dgo.InteractionCreate) error
 			Flags: dgo.MessageFlagsEphemeral,
 		},
 	})
-
 	if err != nil {
 		return err
 	}
 
 	return nil
 }
+
 func (c channelsSetLang) Components() []Component {
 	return []Component{}
 }
+
 func (c channelsSetLang) Subcommands() []Command {
 	return []Command{}
 }
@@ -344,7 +354,8 @@ func getChannelInfo(db gconf.DB, ch gdb.Channel) (*dgo.MessageEmbed, error) {
 		g[i] = "<#" + gi.ID + ">"
 	}
 
-	return &dgo.MessageEmbed{Title: "Channel Information",
+	return &dgo.MessageEmbed{
+		Title: "Channel Information",
 		Fields: []*dgo.MessageEmbedField{
 			{Name: "ID", Value: ch.ID, Inline: true},
 			{Name: "Language", Value: string(ch.Language), Inline: true},

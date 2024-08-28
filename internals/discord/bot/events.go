@@ -8,6 +8,7 @@ func (b *Bot) registerEventHandlers() {
 		events.NewMessageCreate(b.db, b.translator).Serve,
 		events.NewMessageEdit(b.db, b.translator).Serve,
 		events.NewReady(b.logger, b.db).Serve,
+		events.NewThreadCreate(b.db, b.translator).Serve,
 	}
 	for _, h := range ehs {
 		b.session.AddHandler(h)

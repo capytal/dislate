@@ -16,13 +16,14 @@ type Error interface {
 }
 
 type defaultError struct {
-	err string
+	err  string
 	args []slog.Attr
 }
 
 func NewError(err string, args ...slog.Attr) defaultError {
 	return defaultError{err, args}
 }
+
 func New(err string, args ...slog.Attr) defaultError {
 	return NewError(err, args...)
 }
@@ -51,7 +52,7 @@ func (err defaultError) Reply(s *dgo.Session, m *dgo.Message) {
 }
 
 func (err defaultError) LogReply(l *slog.Logger, s *dgo.Session, m *dgo.Message) {
-	err.Reply(s,m)
+	err.Reply(s, m)
 	err.Log(l)
 }
 

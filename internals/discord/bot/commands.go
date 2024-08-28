@@ -1,12 +1,13 @@
 package bot
 
 import (
-	"dislate/internals/discord/bot/commands"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
 	"slices"
+
+	"dislate/internals/discord/bot/commands"
 
 	dgo "github.com/bwmarrin/discordgo"
 )
@@ -94,7 +95,6 @@ func (b *Bot) registerCommands() error {
 				sc := opts[isSub]
 
 				err := subCmds[sc.Name].Handle(s, ic)
-
 				if err != nil {
 					_ = s.InteractionRespond(ic.Interaction, &dgo.InteractionResponse{
 						Type: dgo.InteractionResponseDeferredChannelMessageWithSource,

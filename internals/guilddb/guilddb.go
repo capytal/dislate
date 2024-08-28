@@ -1,8 +1,9 @@
 package guilddb
 
 import (
-	"dislate/internals/translator/lang"
 	"errors"
+
+	"dislate/internals/translator/lang"
 )
 
 type Guild[C any] struct {
@@ -38,6 +39,7 @@ type Message struct {
 func NewMessage(GuildID, ChannelID, ID string, lang lang.Language) Message {
 	return Message{GuildID, ChannelID, ID, lang, nil, nil}
 }
+
 func NewTranslatedMessage(
 	GuildID, ChannelID, ID string,
 	lang lang.Language,
@@ -143,9 +145,11 @@ type GuildDB[C any] interface {
 	GuildUpdate(g Guild[C]) error
 }
 
-var ErrNoAffect = errors.New("Not able to affect anything in the database")
-var ErrNotFound = errors.New("Object not found in the database")
-var ErrPreconditionFailed = errors.New("Precondition failed")
-var ErrInvalidObject = errors.New("Invalid object")
-var ErrInternal = errors.New("Internal error while trying to use database")
-var ErrConfigParsing = errors.New("Error while parsing Guild's config")
+var (
+	ErrNoAffect           = errors.New("Not able to affect anything in the database")
+	ErrNotFound           = errors.New("Object not found in the database")
+	ErrPreconditionFailed = errors.New("Precondition failed")
+	ErrInvalidObject      = errors.New("Invalid object")
+	ErrInternal           = errors.New("Internal error while trying to use database")
+	ErrConfigParsing      = errors.New("Error while parsing Guild's config")
+)

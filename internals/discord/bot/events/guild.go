@@ -18,6 +18,7 @@ type GuildCreate struct {
 func NewGuildCreate(log *slog.Logger, db gconf.DB) GuildCreate {
 	return GuildCreate{log, db}
 }
+
 func (h GuildCreate) Serve(s *dgo.Session, e *dgo.GuildCreate) {
 	err := h.db.GuildInsert(gdb.Guild[gconf.ConfigString]{ID: e.Guild.ID})
 
@@ -41,6 +42,7 @@ type Ready struct {
 func NewReady(log *slog.Logger, db gconf.DB) EventHandler[*dgo.Ready] {
 	return Ready{log, db}
 }
+
 func (h Ready) Serve(s *dgo.Session, e *dgo.Ready) {
 	for _, g := range e.Guilds {
 		err := h.db.GuildInsert(gdb.Guild[gconf.ConfigString]{ID: g.ID})

@@ -13,12 +13,14 @@ type Config struct {
 }
 
 type ConfigString struct {
-	LoggingChannel *string `json:"logging_channel"`
+	LoggingChannel *string     `json:"logging_channel"`
 	LoggingLevel   *slog.Level `json:"logging_level"`
 }
 
-type Guild gdb.Guild[ConfigString]
-type DB gdb.GuildDB[ConfigString]
+type (
+	Guild gdb.Guild[ConfigString]
+	DB    gdb.GuildDB[ConfigString]
+)
 
 func (g Guild) GetConfig(s *dgo.Session) (*Config, error) {
 	var l *slog.Logger
@@ -36,7 +38,7 @@ func (g Guild) GetConfig(s *dgo.Session) (*Config, error) {
 		} else {
 			lv = slog.LevelInfo
 		}
-		l = slog.New(NewGuildHandler(s,c, &slog.HandlerOptions{
+		l = slog.New(NewGuildHandler(s, c, &slog.HandlerOptions{
 			Level: lv,
 		}))
 	} else {

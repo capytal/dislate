@@ -22,6 +22,7 @@ type MessageCreate struct {
 func NewMessageCreate(db gconf.DB, t translator.Translator) MessageCreate {
 	return MessageCreate{db, t}
 }
+
 func (h MessageCreate) Serve(s *dgo.Session, ev *dgo.MessageCreate) {
 	if ev.Message.Author.Bot {
 		return
@@ -127,7 +128,6 @@ func (h MessageCreate) Serve(s *dgo.Session, ev *dgo.MessageCreate) {
 		}(c)
 
 	}
-
 }
 
 type MessageEdit struct {
@@ -138,6 +138,7 @@ type MessageEdit struct {
 func NewMessageEdit(db gconf.DB, t translator.Translator) MessageEdit {
 	return MessageEdit{db, t}
 }
+
 func (h MessageEdit) Serve(s *dgo.Session, ev *dgo.MessageUpdate) {
 	if ev.Message.Author.Bot {
 		return
@@ -221,11 +222,10 @@ func (h MessageEdit) Serve(s *dgo.Session, ev *dgo.MessageUpdate) {
 		}(m)
 
 	}
-
 }
 
 func getUserWebhook(s *dgo.Session, channelID string, user *dgo.User) (*dgo.Webhook, error) {
-	var whName = "DISLATE_USER_WEBHOOK_" + user.ID
+	whName := "DISLATE_USER_WEBHOOK_" + user.ID
 
 	ws, err := s.ChannelWebhooks(channelID)
 	if err != nil {
@@ -247,7 +247,7 @@ func getUserWebhook(s *dgo.Session, channelID string, user *dgo.User) (*dgo.Webh
 	return w, nil
 }
 
-func  getMessage(db gconf.DB, m *dgo.Message, lang lang.Language) (guilddb.Message, error) {
+func getMessage(db gconf.DB, m *dgo.Message, lang lang.Language) (guilddb.Message, error) {
 	msg, err := db.Message(m.GuildID, m.ChannelID, m.ID)
 
 	if e.Is(err, guilddb.ErrNotFound) {
@@ -261,14 +261,17 @@ func  getMessage(db gconf.DB, m *dgo.Message, lang lang.Language) (guilddb.Messa
 	}
 
 	return msg, nil
-
 }
 
-func  getTranslatedMessage(db gconf.DB, m, original *dgo.Message, lang lang.Language) (guilddb.Message, error) {
+func getTranslatedMessage(
+	db gconf.DB,
+	m, original *dgo.Message,
+	lang lang.Language,
+) (guilddb.Message, error) {
 	msg, err := db.Message(m.GuildID, m.ChannelID, m.ID)
 
 	if e.Is(err, guilddb.ErrNotFound) {
-		if err :=db.MessageInsert(guilddb.NewTranslatedMessage(
+		if err := db.MessageInsert(guilddb.NewTranslatedMessage(
 			m.GuildID,
 			m.ChannelID,
 			m.ID,
@@ -278,7 +281,7 @@ func  getTranslatedMessage(db gconf.DB, m, original *dgo.Message, lang lang.Lang
 		)); err != nil {
 			return guilddb.Message{}, err
 		}
-		msg, err =db.Message(m.GuildID, m.ChannelID, m.ID)
+		msg, err = db.Message(m.GuildID, m.ChannelID, m.ID)
 		if err != nil {
 			return guilddb.Message{}, err
 		}
@@ -287,5 +290,4 @@ func  getTranslatedMessage(db gconf.DB, m, original *dgo.Message, lang lang.Lang
 	}
 
 	return msg, nil
-
 }

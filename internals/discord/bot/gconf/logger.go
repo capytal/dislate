@@ -20,7 +20,8 @@ func NewGuildHandler(s *dgo.Session, c *dgo.Channel, opts *slog.HandlerOptions) 
 type disabledHandler struct {
 	*slog.TextHandler
 }
-func (_ disabledHandler) Enabled(_ context.Context,_ slog.Level) bool {
+
+func (_ disabledHandler) Enabled(_ context.Context, _ slog.Level) bool {
 	return false
 }
 

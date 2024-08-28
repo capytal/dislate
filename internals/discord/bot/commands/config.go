@@ -17,6 +17,7 @@ type ManageConfig struct {
 func NewMagageConfig(db gconf.DB) ManageConfig {
 	return ManageConfig{db}
 }
+
 func (c ManageConfig) Info() *dgo.ApplicationCommand {
 	var permissions int64 = dgo.PermissionAdministrator
 
@@ -26,12 +27,15 @@ func (c ManageConfig) Info() *dgo.ApplicationCommand {
 		DefaultMemberPermissions: &permissions,
 	}
 }
+
 func (c ManageConfig) Handle(s *dgo.Session, ic *dgo.InteractionCreate) error {
 	return nil
 }
+
 func (c ManageConfig) Components() []Component {
 	return []Component{}
 }
+
 func (c ManageConfig) Subcommands() []Command {
 	return []Command{
 		loggerConfigChannel(c),
@@ -42,6 +46,7 @@ func (c ManageConfig) Subcommands() []Command {
 type loggerConfigChannel struct {
 	db gconf.DB
 }
+
 func (c loggerConfigChannel) Info() *dgo.ApplicationCommand {
 	var permissions int64 = dgo.PermissionAdministrator
 	return &dgo.ApplicationCommand{
@@ -49,9 +54,9 @@ func (c loggerConfigChannel) Info() *dgo.ApplicationCommand {
 		Description:              "Change logging channel",
 		DefaultMemberPermissions: &permissions,
 		Options: []*dgo.ApplicationCommandOption{{
-			Type: dgo.ApplicationCommandOptionChannel,
-			Required: true,
-			Name: "log-channel",
+			Type:        dgo.ApplicationCommandOptionChannel,
+			Required:    true,
+			Name:        "log-channel",
 			Description: "The channel to send log messages and errors to",
 			ChannelTypes: []dgo.ChannelType{
 				dgo.ChannelTypeGuildText,
@@ -59,6 +64,7 @@ func (c loggerConfigChannel) Info() *dgo.ApplicationCommand {
 		}},
 	}
 }
+
 func (c loggerConfigChannel) Handle(s *dgo.Session, ic *dgo.InteractionCreate) error {
 	opts := getOptions(ic.ApplicationCommandData().Options)
 
@@ -91,15 +97,17 @@ func (c loggerConfigChannel) Handle(s *dgo.Session, ic *dgo.InteractionCreate) e
 		Type: dgo.InteractionResponseChannelMessageWithSource,
 		Data: &dgo.InteractionResponseData{
 			Content: fmt.Sprintf("Logging channel changed to %s", *guild.Config.LoggingChannel),
-			Flags: dgo.MessageFlagsEphemeral,
+			Flags:   dgo.MessageFlagsEphemeral,
 		},
 	})
 
 	return err
 }
+
 func (c loggerConfigChannel) Components() []Component {
 	return []Component{}
 }
+
 func (c loggerConfigChannel) Subcommands() []Command {
 	return []Command{}
 }
@@ -107,6 +115,7 @@ func (c loggerConfigChannel) Subcommands() []Command {
 type loggerConfigLevel struct {
 	db gconf.DB
 }
+
 func (c loggerConfigLevel) Info() *dgo.ApplicationCommand {
 	var permissions int64 = dgo.PermissionAdministrator
 	return &dgo.ApplicationCommand{
@@ -114,9 +123,9 @@ func (c loggerConfigLevel) Info() *dgo.ApplicationCommand {
 		Description:              "Change logging channel",
 		DefaultMemberPermissions: &permissions,
 		Options: []*dgo.ApplicationCommandOption{{
-			Type: dgo.ApplicationCommandOptionString,
-			Required: true,
-			Name: "log-level",
+			Type:        dgo.ApplicationCommandOptionString,
+			Required:    true,
+			Name:        "log-level",
 			Description: "The logging level of messages and errors",
 			Choices: []*dgo.ApplicationCommandOptionChoice{
 				{Name: "Debug", Value: slog.LevelDebug.String()},
@@ -127,6 +136,7 @@ func (c loggerConfigLevel) Info() *dgo.ApplicationCommand {
 		}},
 	}
 }
+
 func (c loggerConfigLevel) Handle(s *dgo.Session, ic *dgo.InteractionCreate) error {
 	opts := getOptions(ic.ApplicationCommandData().Options)
 
@@ -161,15 +171,17 @@ func (c loggerConfigLevel) Handle(s *dgo.Session, ic *dgo.InteractionCreate) err
 		Type: dgo.InteractionResponseChannelMessageWithSource,
 		Data: &dgo.InteractionResponseData{
 			Content: fmt.Sprintf("Logging level changed to %s", l),
-			Flags: dgo.MessageFlagsEphemeral,
+			Flags:   dgo.MessageFlagsEphemeral,
 		},
 	})
 
 	return err
 }
+
 func (c loggerConfigLevel) Components() []Component {
 	return []Component{}
 }
+
 func (c loggerConfigLevel) Subcommands() []Command {
 	return []Command{}
 }

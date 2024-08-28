@@ -3,6 +3,12 @@ PORT?=8080
 lint:
 	go run github.com/golangci/golangci-lint/cmd/golangci-lint@v1.59.1 run
 
+fmt:
+	go fmt .
+	go run golang.org/x/tools/cmd/goimports@v0.24.0 -l -w .
+	go run github.com/segmentio/golines@v0.12.2 -l -w .
+	go run mvdan.cc/gofumpt@v0.7.0 -l -w .
+
 build:
 	go build -o bin/dislate
 

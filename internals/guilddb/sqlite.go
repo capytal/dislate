@@ -159,7 +159,6 @@ func (db *SQLiteDB[C]) MessageDelete(m Message) error {
 		DELETE channels
 			WHERE "GuildID" = $1 AND "OriginChannelID" = $2 AND "OriginID" = $3
 	`, m.GuildID, m.ChannelID, m.ID)
-
 	if err != nil {
 		return errors.Join(ErrInternal, err)
 	}
@@ -200,7 +199,6 @@ func (db *SQLiteDB[C]) selectMessages(query string, args ...any) ([]Message, err
 		SELECT GuildID, ChannelID, ID, Language, OriginChannelID, OriginID FROM messages
 			%s
 	`, query), args...)
-
 	if err != nil {
 		return []Message{}, errors.Join(ErrInternal, err)
 	}
@@ -283,7 +281,6 @@ func (db *SQLiteDB[C]) ChannelDelete(c Channel) error {
 }
 
 func (db *SQLiteDB[C]) ChannelGroup(guildID, channelID string) (ChannelGroup, error) {
-
 	var j string
 	err := db.sql.QueryRow(fmt.Sprintf(`
 		SELECT Channels FROM channelGroups, json_each(Channels)
@@ -433,7 +430,6 @@ func (db *SQLiteDB[C]) selectChannels(query string, args ...any) ([]Channel, err
 		SELECT GuildID, ID, Language FROM channels
 			%s
 	`, query), args...)
-
 	if err != nil {
 		return []Channel{}, errors.Join(ErrInternal, err)
 	}

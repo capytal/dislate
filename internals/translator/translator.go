@@ -14,9 +14,11 @@ type MockTranslator struct{}
 func NewMockTranslator() MockTranslator {
 	return MockTranslator{}
 }
+
 func (t MockTranslator) Translate(from, to lang.Language, text string) (string, error) {
 	return text, nil
 }
+
 func (t MockTranslator) Detect(text string) (lang.Language, error) {
 	return lang.EN, nil
 }
