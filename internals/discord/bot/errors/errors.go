@@ -51,8 +51,26 @@ func (err defaultError) Reply(s *dgo.Session, m *dgo.Message) {
 	}
 }
 
+func (err defaultError) Send(s *dgo.Session, channelID string) {
+	_, erro := s.ChannelMessageSend(
+		channelID,
+		fmt.Sprintf("Error: %s\nSee logs for more details", err.err),
+	)
+	if erro != nil {
+		_, _ = s.ChannelMessageSend(
+			channelID,
+			fmt.Sprintf("Failed to send error message (somehow), due to:\n%s", erro.Error()),
+		)
+	}
+}
+
 func (err defaultError) LogReply(l *slog.Logger, s *dgo.Session, m *dgo.Message) {
 	err.Reply(s, m)
+	err.Log(l)
+}
+
+func (err defaultError) LogSend(l *slog.Logger, s *dgo.Session, channelID string) {
+	err.Send(s, channelID)
 	err.Log(l)
 }
 

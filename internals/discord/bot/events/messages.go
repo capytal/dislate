@@ -146,7 +146,7 @@ func (h MessageEdit) Serve(s *dgo.Session, ev *dgo.MessageUpdate) {
 
 	log := gconf.GetLogger(ev.Message.GuildID, s, h.db)
 
-	msg, err := getMessage(h.db, ev.Message, lang.EN)
+	msg, err := h.db.Message(ev.Message.GuildID, ev.Message.ChannelID, ev.Message.ID)
 	if e.Is(err, guilddb.ErrNotFound) {
 		log.Debug("Message is not in database, ignoring.",
 			slog.String("guild", ev.Message.GuildID),
@@ -221,6 +221,93 @@ func (h MessageEdit) Serve(s *dgo.Session, ev *dgo.MessageUpdate) {
 			}
 		}(m)
 
+	}
+}
+
+type MessageDelete struct {
+	db gconf.DB
+}
+
+func NewMessageDelete(db gconf.DB) MessageDelete {
+	return MessageDelete{db}
+}
+
+func (h MessageDelete) Serve(s *dgo.Session, ev *dgo.MessageDelete) {
+	log := gconf.GetLogger(ev.Message.GuildID, s, h.db)
+
+	msg, err := h.db.Message(ev.Message.GuildID, ev.Message.ChannelID, ev.Message.ID)
+	if e.Is(err, guilddb.ErrNotFound) {
+		log.Debug("Message is not in database, ignoring.",
+			slog.String("guild", ev.Message.GuildID),
+			slog.String("channel", ev.Message.ChannelID),
+		)
+		return
+	} else if err != nil {
+		errors.NewErrDatabase(
+			slog.String("guild", ev.Message.GuildID),
+			slog.String("channel", ev.Message.ChannelID),
+			slog.String("err", err.Error()),
+		).LogReply(log, s, ev.Message)
+		return
+	}
+
+	var originChannelID, originID string
+	if msg.OriginID != nil && msg.OriginChannelID != nil {
+		oMsg, err := h.db.Message(ev.Message.GuildID, *msg.OriginChannelID, *msg.OriginID)
+		if err != nil {
+			originChannelID, originID = *msg.OriginChannelID, *msg.OriginID
+		} else {
+			msg, originChannelID, originID = oMsg, oMsg.ChannelID, oMsg.ID
+		}
+	} else {
+		originChannelID, originID = msg.ChannelID, msg.ID
+	}
+
+	tmsgs, err := h.db.MessagesWithOrigin(msg.GuildID, originChannelID, originID)
+	if e.Is(err, guilddb.ErrNotFound) {
+		log.Debug("No translated message found, ignoring.",
+			slog.String("guild", ev.GuildID),
+			slog.String("channel", ev.ChannelID),
+		)
+		return
+	} else if err != nil {
+		errors.NewErrDatabase(
+			slog.String("guild", ev.GuildID),
+			slog.String("channel", ev.ChannelID),
+			slog.String("err", err.Error()),
+		).LogReply(log, s, ev.Message)
+		return
+	}
+
+	for _, m := range tmsgs {
+		if m.ID == msg.ID && m.GuildID == msg.GuildID {
+			continue
+		}
+		go func(m guilddb.Message) {
+			if err := s.ChannelMessageDelete(m.ChannelID, m.ID); err != nil {
+				log.Warn("Failed to delete message",
+					slog.String("channel", m.ChannelID),
+					slog.String("message", m.ID),
+					slog.String("err", err.Error()),
+				)
+			}
+		}(m)
+	}
+
+	if err := s.ChannelMessageDelete(msg.ChannelID, msg.ID); err != nil {
+		log.Warn("Failed to delete message",
+			slog.String("channel", msg.ChannelID),
+			slog.String("message", msg.ID),
+			slog.String("err", err.Error()),
+		)
+	}
+
+	if err := h.db.MessageDelete(guilddb.NewMessage(msg.GuildID, msg.ChannelID, msg.ID, lang.EN)); err != nil {
+		errors.NewErrDatabase(
+			slog.String("channel", msg.ChannelID),
+			slog.String("message", msg.ID),
+			slog.String("err", err.Error()),
+		).LogSend(log, s, msg.ChannelID)
 	}
 }
 
