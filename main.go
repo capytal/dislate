@@ -25,7 +25,11 @@ const (
 // var translation_provider = flag.String("tprovider", string(GOOGLE_TRANSLATE), "Translation provider")
 var (
 	database_file = flag.String("db", "file:./guild.db", "SQLite database file/location")
-	discord_token = flag.String("token", os.Getenv("DISCORD_TOKEN"), "Discord bot authentication token")
+	discord_token = flag.String(
+		"token",
+		os.Getenv("DISCORD_TOKEN"),
+		"Discord bot authentication token",
+	)
 )
 
 func init() {
@@ -39,7 +43,7 @@ func main() {
 		ReportCaller:    true,
 	}))
 
-	db, err := guilddb.NewSQLiteDB[gconf.ConfigString](*database_file)
+	db, err := guilddb.NewSQLiteDB[gconf.ConfigString](*database_file + "?_busy_timeout=5000")
 	if err != nil {
 		logger.Error("Failed to open database connection", slog.String("err", err.Error()))
 		return

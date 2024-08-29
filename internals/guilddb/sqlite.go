@@ -22,6 +22,7 @@ func NewSQLiteDB[C any](file string) (*SQLiteDB[C], error) {
 	if err != nil {
 		return &SQLiteDB[C]{}, err
 	}
+	db.SetMaxOpenConns(1)
 	return &SQLiteDB[C]{db}, nil
 }
 
@@ -201,6 +202,8 @@ func (db *SQLiteDB[C]) selectMessages(query string, args ...any) ([]Message, err
 		SELECT GuildID, ChannelID, ID, Language, OriginChannelID, OriginID FROM messages
 			%s
 	`, query), args...)
+	defer r.Close()
+
 	if err != nil {
 		return []Message{}, errors.Join(ErrInternal, err)
 	}
@@ -435,6 +438,8 @@ func (db *SQLiteDB[C]) selectChannels(query string, args ...any) ([]Channel, err
 		SELECT GuildID, ID, Language FROM channels
 			%s
 	`, query), args...)
+	defer r.Close()
+
 	if err != nil {
 		return []Channel{}, errors.Join(ErrInternal, err)
 	}
