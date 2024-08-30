@@ -1,13 +1,14 @@
 package events
 
 import (
+	e "errors"
+	"log/slog"
+	"sync"
+
 	"dislate/internals/discord/bot/errors"
 	"dislate/internals/discord/bot/gconf"
 	gdb "dislate/internals/guilddb"
 	"dislate/internals/translator"
-	e "errors"
-	"log/slog"
-	"sync"
 
 	dgo "github.com/bwmarrin/discordgo"
 )
@@ -24,11 +25,6 @@ func NewThreadCreate(db gconf.DB, t translator.Translator) ThreadCreate {
 func (h ThreadCreate) Serve(s *dgo.Session, ev *dgo.ThreadCreate) {
 	log := gconf.GetLogger(ev.GuildID, s, h.db)
 	log.Debug("Thread created!", slog.String("parent", ev.ParentID), slog.String("thread", ev.ID))
-
-	if len(ev.AppliedTags) > 0 {
-		log.Debug("New thread is in forum, unimplemented, ignoring")
-		return
-	}
 
 	// INFO: Threads have the same ID as the origin message of them
 	threadMsg, err := h.db.Message(ev.GuildID, ev.ParentID, ev.ID)

@@ -65,6 +65,9 @@ func (c channelsInfo) Info() *dgo.ApplicationCommand {
 			Description: "The channel to manage",
 			ChannelTypes: []dgo.ChannelType{
 				dgo.ChannelTypeGuildText,
+				dgo.ChannelTypeGuildForum,
+				dgo.ChannelTypeGuildPublicThread,
+				dgo.ChannelTypeGuildPrivateThread,
 			},
 		}},
 	}
@@ -264,6 +267,9 @@ func (c channelsSetLang) Info() *dgo.ApplicationCommand {
 			Description: "The channel to change the language",
 			ChannelTypes: []dgo.ChannelType{
 				dgo.ChannelTypeGuildText,
+				dgo.ChannelTypeGuildForum,
+				dgo.ChannelTypeGuildPublicThread,
+				dgo.ChannelTypeGuildPrivateThread,
 			},
 		}},
 	}
