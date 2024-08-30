@@ -17,7 +17,12 @@ type Bot struct {
 	logger     *slog.Logger
 }
 
-func NewBot(token string, db gconf.DB, translator translator.Translator, logger *slog.Logger) (*Bot, error) {
+func NewBot(
+	token string,
+	db gconf.DB,
+	translator translator.Translator,
+	logger *slog.Logger,
+) (*Bot, error) {
 	discord, err := dgo.New("Bot " + token)
 	if err != nil {
 		return &Bot{}, err

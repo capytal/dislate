@@ -7,8 +7,9 @@ import (
 
 	"dislate/internals/discord/bot/gconf"
 	"dislate/internals/guilddb"
-	gdb "dislate/internals/guilddb"
 	"dislate/internals/translator/lang"
+
+	gdb "dislate/internals/guilddb"
 
 	dgo "github.com/bwmarrin/discordgo"
 )
@@ -134,6 +135,9 @@ func (c channelsLink) Info() *dgo.ApplicationCommand {
 			Required:    true,
 			ChannelTypes: []dgo.ChannelType{
 				dgo.ChannelTypeGuildText,
+				dgo.ChannelTypeGuildForum,
+				dgo.ChannelTypeGuildPublicThread,
+				dgo.ChannelTypeGuildPrivateThread,
 			},
 		}, {
 			Type:        dgo.ApplicationCommandOptionChannel,
@@ -141,6 +145,9 @@ func (c channelsLink) Info() *dgo.ApplicationCommand {
 			Description: "The channel to link",
 			ChannelTypes: []dgo.ChannelType{
 				dgo.ChannelTypeGuildText,
+				dgo.ChannelTypeGuildForum,
+				dgo.ChannelTypeGuildPublicThread,
+				dgo.ChannelTypeGuildPrivateThread,
 			},
 		}},
 	}

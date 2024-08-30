@@ -1,15 +1,14 @@
 package events
 
 import (
-	e "errors"
-	"log/slog"
-	"slices"
-
 	"dislate/internals/discord/bot/errors"
 	"dislate/internals/discord/bot/gconf"
 	"dislate/internals/guilddb"
 	"dislate/internals/translator"
 	"dislate/internals/translator/lang"
+	e "errors"
+	"log/slog"
+	"slices"
 
 	dgo "github.com/bwmarrin/discordgo"
 )
@@ -24,51 +23,59 @@ func NewMessageCreate(db gconf.DB, t translator.Translator) MessageCreate {
 }
 
 func (h MessageCreate) Serve(s *dgo.Session, ev *dgo.MessageCreate) {
-	if ev.Message.Author.Bot {
+	if ev.Message.Author.Bot || ev.Type != dgo.MessageTypeDefault {
 		return
 	}
-	log := gconf.GetLogger(ev.GuildID, s, h.db)
 
-	ch, err := h.db.Channel(ev.GuildID, ev.ChannelID)
+	log := gconf.GetLogger(ev.Message.GuildID, s, h.db)
+	h.sendMessage(log, s, ev.Message)
+}
+
+func (h MessageCreate) sendMessage(log *slog.Logger, s *dgo.Session, msg *dgo.Message) {
+	ch, err := h.db.Channel(msg.GuildID, msg.ChannelID)
 	if e.Is(err, guilddb.ErrNotFound) {
 		log.Debug("Channel is not in database, ignoring.",
-			slog.String("guild", ev.GuildID),
-			slog.String("channel", ev.ChannelID),
+			slog.String("guild", msg.GuildID),
+			slog.String("channel", msg.ChannelID),
+			slog.String("message", msg.ID),
 		)
 		return
 	} else if err != nil {
 		errors.NewErrDatabase(
-			slog.String("guild", ev.GuildID),
-			slog.String("channel", ev.ChannelID),
+			slog.String("guild", msg.GuildID),
+			slog.String("channel", msg.ChannelID),
+			slog.String("message", msg.ID),
 			slog.String("err", err.Error()),
-		).LogReply(log, s, ev.Message)
+		).LogReply(log, s, msg)
 		return
 	}
 
 	gc, err := h.db.ChannelGroup(ch.GuildID, ch.ID)
 	if e.Is(err, guilddb.ErrNotFound) {
 		log.Debug("Channel is not in a group, ignoring.",
-			slog.String("guild", ev.GuildID),
-			slog.String("channel", ev.ChannelID),
+			slog.String("guild", msg.GuildID),
+			slog.String("channel", msg.ChannelID),
+			slog.String("message", msg.ID),
 		)
 		return
 	} else if err != nil {
 		errors.NewErrDatabase(
-			slog.String("guild", ev.GuildID),
-			slog.String("channel", ev.ChannelID),
+			slog.String("guild", msg.GuildID),
+			slog.String("channel", msg.ChannelID),
+			slog.String("message", msg.ID),
 			slog.String("err", err.Error()),
-		).LogReply(log, s, ev.Message)
+		).LogReply(log, s, msg)
 		return
 	}
 
-	_, err = getMessage(h.db, ev.Message, ch.Language)
+	_, err = getMessage(h.db, msg, ch.Language)
 	if err != nil {
 		errors.NewErrDatabase(
-			slog.String("guild", ev.Message.GuildID),
-			slog.String("channel", ev.Message.ChannelID),
-			slog.String("message", ev.Message.ID),
+			slog.String("guild", msg.GuildID),
+			slog.String("channel", msg.ChannelID),
+			slog.String("message", msg.ID),
 			slog.String("err", err.Error()),
-		).LogReply(log, s, ev.Message)
+		).LogReply(log, s, msg)
 		return
 	}
 
@@ -77,53 +84,77 @@ func (h MessageCreate) Serve(s *dgo.Session, ev *dgo.MessageCreate) {
 			continue
 		}
 		go func(c guilddb.Channel) {
-			uw, err := getUserWebhook(s, c.ID, ev.Message.Author)
+			dch, err := s.Channel(c.ID)
+
+			var channelID string
 			if err != nil {
-				errors.NewErrUserWebhook(
-					slog.String("guild", ev.Message.GuildID),
-					slog.String("channel", ev.Message.ChannelID),
-					slog.Any("user", ev.Message.Author),
-				).LogReply(log, s, ev.Message)
+				errors.New("Failed to get information about channel",
+					slog.String("guild", msg.GuildID),
+					slog.String("channel", msg.ChannelID),
+					slog.String("err", err.Error()),
+				).LogReply(log, s, msg)
+			} else if dch.IsThread() {
+				channelID = dch.ParentID
+			} else {
+				channelID = dch.ID
 			}
 
-			t, err := h.translator.Translate(ch.Language, c.Language, ev.Message.Content)
+			uw, err := getUserWebhook(s, channelID, msg.Author)
+			if err != nil {
+				errors.NewErrUserWebhook(
+					slog.String("guild", msg.GuildID),
+					slog.String("channel", msg.ChannelID),
+					slog.Any("user", msg.Author),
+				).LogReply(log, s, msg)
+			}
+
+			t, err := h.translator.Translate(ch.Language, c.Language, msg.Content)
 			if err != nil {
 				errors.New("Error while trying to translate message",
-					slog.String("guild", ev.Message.GuildID),
-					slog.String("channel", ev.Message.ChannelID),
-					slog.String("message", ev.Message.ID),
-					slog.String("content", ev.Message.Content),
+					slog.String("guild", msg.GuildID),
+					slog.String("channel", msg.ChannelID),
+					slog.String("message", msg.ID),
+					slog.String("content", msg.Content),
 					slog.String("err", err.Error()),
-				).LogReply(log, s, ev.Message)
+				).LogReply(log, s, msg)
 			}
 
-			tdm, err := s.WebhookExecute(uw.ID, uw.Token, true, &dgo.WebhookParams{
-				AvatarURL: ev.Message.Author.AvatarURL(""),
-				Username:  ev.Message.Author.GlobalName,
-				Content:   t,
-			})
+			var tdm *dgo.Message
+			if dch.IsThread() {
+				tdm, err = s.WebhookThreadExecute(uw.ID, uw.Token, true, dch.ID, &dgo.WebhookParams{
+					AvatarURL: msg.Author.AvatarURL(""),
+					Username:  msg.Author.GlobalName,
+					Content:   t,
+				})
+			} else {
+				tdm, err = s.WebhookExecute(uw.ID, uw.Token, true, &dgo.WebhookParams{
+					AvatarURL: msg.Author.AvatarURL(""),
+					Username:  msg.Author.GlobalName,
+					Content:   t,
+				})
+			}
 			if err != nil {
 				errors.NewErrUserWebhook(
-					slog.String("guild", ev.Message.GuildID),
-					slog.String("channel", ev.Message.ChannelID),
-					slog.String("message", ev.Message.ID),
-					slog.String("content", ev.Message.Content),
+					slog.String("guild", msg.GuildID),
+					slog.String("channel", msg.ChannelID),
+					slog.String("message", msg.ID),
+					slog.String("content", msg.Content),
 					slog.String("err", err.Error()),
-				).LogReply(log, s, ev.Message)
+				).LogReply(log, s, msg)
 			}
 
 			if tdm.GuildID == "" {
-				tdm.GuildID = ev.Message.GuildID
+				tdm.GuildID = msg.GuildID
 			}
 
-			_, err = getTranslatedMessage(h.db, tdm, ev.Message, c.Language)
+			_, err = getTranslatedMessage(h.db, tdm, msg, c.Language)
 			if err != nil {
 				errors.NewErrDatabase(
-					slog.String("guild", ev.Message.GuildID),
-					slog.String("channel", ev.Message.ChannelID),
-					slog.String("message", ev.Message.ID),
+					slog.String("guild", msg.GuildID),
+					slog.String("channel", msg.ChannelID),
+					slog.String("message", msg.ID),
 					slog.String("err", err.Error()),
-				).LogReply(log, s, ev.Message)
+				).LogReply(log, s, msg)
 			}
 		}(c)
 
@@ -140,7 +171,7 @@ func NewMessageEdit(db gconf.DB, t translator.Translator) MessageEdit {
 }
 
 func (h MessageEdit) Serve(s *dgo.Session, ev *dgo.MessageUpdate) {
-	if ev.Message.Author.Bot {
+	if ev.Message.Author.Bot || ev.Type != dgo.MessageTypeDefault {
 		return
 	}
 
@@ -183,7 +214,20 @@ func (h MessageEdit) Serve(s *dgo.Session, ev *dgo.MessageUpdate) {
 			continue
 		}
 		go func(m guilddb.Message) {
-			uw, err := getUserWebhook(s, m.ChannelID, ev.Message.Author)
+			var channelID string
+			if dch, err := s.Channel(m.ChannelID); err != nil {
+				errors.New("Failed to get information about channel",
+					slog.String("guild", ev.Message.GuildID),
+					slog.String("channel", ev.Message.ChannelID),
+					slog.String("err", err.Error()),
+				).LogReply(log, s, ev.Message)
+			} else if dch.IsThread() {
+				channelID = dch.ParentID
+			} else {
+				channelID = dch.ID
+			}
+
+			uw, err := getUserWebhook(s, channelID, ev.Message.Author)
 			if err != nil {
 				errors.NewErrUserWebhook(
 					slog.String("guild", ev.Message.GuildID),
@@ -233,6 +277,9 @@ func NewMessageDelete(db gconf.DB) MessageDelete {
 }
 
 func (h MessageDelete) Serve(s *dgo.Session, ev *dgo.MessageDelete) {
+	if ev.Type != dgo.MessageTypeDefault {
+		return
+	}
 	log := gconf.GetLogger(ev.Message.GuildID, s, h.db)
 
 	msg, err := h.db.Message(ev.Message.GuildID, ev.Message.ChannelID, ev.Message.ID)
@@ -280,7 +327,7 @@ func (h MessageDelete) Serve(s *dgo.Session, ev *dgo.MessageDelete) {
 	}
 
 	for _, m := range tmsgs {
-		if m.ID == msg.ID && m.GuildID == msg.GuildID {
+		if m.ID == msg.ID && m.ChannelID == msg.ChannelID && m.GuildID == msg.GuildID {
 			continue
 		}
 		go func(m guilddb.Message) {
