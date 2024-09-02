@@ -1,105 +1,127 @@
 package errors
 
 import (
+	"errors"
 	"fmt"
 	"log/slog"
+	"reflect"
 	"strings"
 
 	dgo "github.com/bwmarrin/discordgo"
 )
 
-type Error interface {
-	Log(*slog.Logger)
-	Reply(*dgo.Session, *dgo.Message)
-	LogReply(*slog.Logger, *dgo.Session, *dgo.Message)
+type BotError interface {
 	Error() string
 }
 
-type defaultError struct {
-	err  string
-	args []slog.Attr
+type BotErrorHandler interface {
+	Info() string
+	Error() string
+	Reply(s *dgo.Session, m *dgo.Message) BotErrorHandler
+	Send(s *dgo.Session, channelID string) BotErrorHandler
+	Log(l *slog.Logger) BotErrorHandler
 }
 
-func NewError(err string, args ...slog.Attr) defaultError {
-	return defaultError{err, args}
+type defaultErrHandler struct {
+	BotError
 }
 
-func New(err string, args ...slog.Attr) defaultError {
-	return NewError(err, args...)
+func (err *defaultErrHandler) Error() string {
+	return err.Error()
 }
 
-func (err defaultError) Log(l *slog.Logger) {
-	args := make([]any, len(err.args))
-	for i, a := range err.args {
-		args[i] = any(a)
-	}
-	l.Error(err.err, args...)
+func (err *defaultErrHandler) Info() string {
+	return err.Info()
 }
 
-func (err defaultError) Reply(s *dgo.Session, m *dgo.Message) {
-	_, erro := s.ChannelMessageSendReply(
-		m.ChannelID,
-		fmt.Sprintf("Error: %s\nSee logs for more details", err.err),
-		m.Reference(),
-	)
-	if erro != nil {
-		_, _ = s.ChannelMessageSendReply(
+func (err *defaultErrHandler) Reply(s *dgo.Session, m *dgo.Message) BotErrorHandler {
+	if _, erro := s.ChannelMessageSendReply(m.ChannelID, err.Error(), m.Reference()); erro != nil {
+		s.ChannelMessageSend(
 			m.ChannelID,
-			fmt.Sprintf("Failed to send error message (somehow), due to:\n%s", erro.Error()),
-			m.Reference(),
+			fmt.Sprintf(
+				"Failed to reply message %s due to \"%s\" with error: %s.",
+				m.ID,
+				erro.Error(),
+				err.Error(),
+			),
 		)
 	}
+	return err
 }
 
-func (err defaultError) Send(s *dgo.Session, channelID string) {
-	_, erro := s.ChannelMessageSend(
-		channelID,
-		fmt.Sprintf("Error: %s\nSee logs for more details", err.err),
-	)
-	if erro != nil {
+func (err *defaultErrHandler) Send(s *dgo.Session, channelID string) BotErrorHandler {
+	if _, erro := s.ChannelMessageSend(channelID, err.Error()); erro != nil {
 		_, _ = s.ChannelMessageSend(
 			channelID,
-			fmt.Sprintf("Failed to send error message (somehow), due to:\n%s", erro.Error()),
+			fmt.Sprintf(
+				"Failed to send error message due to \"%s\" with error: %s.",
+				erro.Error(),
+				err.Error(),
+			),
 		)
 	}
+	return err
 }
 
-func (err defaultError) LogReply(l *slog.Logger, s *dgo.Session, m *dgo.Message) {
-	err.Reply(s, m)
-	err.Log(l)
+func (err *defaultErrHandler) Log(l *slog.Logger) BotErrorHandler {
+	l.Error(err.Error())
+	return err
 }
 
-func (err defaultError) LogSend(l *slog.Logger, s *dgo.Session, channelID string) {
-	err.Send(s, channelID)
-	err.Log(l)
+type EventError[E any] struct {
+	data   map[string]any
+	errors []error
 }
 
-func (err defaultError) Error() string {
-	s := make([]string, len(err.args))
-	for i, a := range err.args {
-		s[i] = fmt.Sprintf("%s=%s", a.Key, a.Value)
+func NewEventError[E any](data map[string]any, err ...error) *EventError[E] {
+	return &EventError[E]{data, err}
+}
+
+func (h *EventError[E]) Wrap(err ...error) *EventError[E] {
+	h.errors = append(h.errors, errors.Join(err...))
+	return h
+}
+
+func (h *EventError[E]) Wrapf(format string, a ...any) *EventError[E] {
+	h.errors = append(h.errors, fmt.Errorf(format, a...))
+	return h
+}
+
+func (h *EventError[E]) AddData(key string, value any) *EventError[E] {
+	h.data[key] = value
+	return h
+}
+
+func (h *EventError[E]) Error() string {
+	var ev E
+	var name string
+	if t := reflect.TypeOf(ev); t != nil {
+		if n := t.Name(); n != "" {
+			name = strings.ToUpper(n)
+		} else {
+			name = "UNAMED EVENT"
+		}
+	} else {
+		name = "UNAMED EVENT"
 	}
-	return fmt.Sprintf("%s\n%s", err.err, strings.Join(s, " "))
+	err := errors.Join(h.errors...)
+	return errors.Join(fmt.Errorf("Failed to process event %s", name), err).Error()
 }
 
-type ErrDatabase struct {
-	defaultError
+func (h *EventError[E]) Log(l *slog.Logger) *EventError[E] {
+	dh := &defaultErrHandler{h}
+	dh.Log(l)
+	return h
 }
 
-func NewErrDatabase(args ...slog.Attr) ErrDatabase {
-	return ErrDatabase{defaultError{
-		"Error while trying to talk to the database.",
-		args,
-	}}
+func (h *EventError[E]) Reply(s *dgo.Session, r *dgo.Message) *EventError[E] {
+	dh := &defaultErrHandler{h}
+	dh.Reply(s, r)
+	return h
 }
 
-type ErrUserWebhook struct {
-	defaultError
-}
-
-func NewErrUserWebhook(args ...slog.Attr) ErrUserWebhook {
-	return ErrUserWebhook{defaultError{
-		"Error while trying to access/execute the user webhook",
-		args,
-	}}
+func (h *EventError[E]) Send(s *dgo.Session, channelID string) *EventError[E] {
+	dh := &defaultErrHandler{h}
+	dh.Send(s, channelID)
+	return h
 }

@@ -1,14 +1,14 @@
 package events
 
 import (
+	"dislate/internals/discord/bot/errors"
+	"dislate/internals/discord/bot/gconf"
+	"dislate/internals/translator"
 	e "errors"
 	"log/slog"
 	"sync"
 
-	"dislate/internals/discord/bot/errors"
-	"dislate/internals/discord/bot/gconf"
 	gdb "dislate/internals/guilddb"
-	"dislate/internals/translator"
 
 	dgo "github.com/bwmarrin/discordgo"
 )
@@ -26,6 +26,12 @@ func (h ThreadCreate) Serve(s *dgo.Session, ev *dgo.ThreadCreate) {
 	log := gconf.GetLogger(ev.GuildID, s, h.db)
 	log.Debug("Thread created!", slog.String("parent", ev.ParentID), slog.String("thread", ev.ID))
 
+	evErr := errors.NewEventError[ThreadCreate](map[string]any{
+		"ThreadID": ev.ID,
+		"ParentID": ev.ParentID,
+		"GuildID":  ev.GuildID,
+	})
+
 	// INFO: Threads have the same ID as the origin message of them
 	threadMsg, err := h.db.Message(ev.GuildID, ev.ParentID, ev.ID)
 	if e.Is(err, gdb.ErrNotFound) {
@@ -36,11 +42,7 @@ func (h ThreadCreate) Serve(s *dgo.Session, ev *dgo.ThreadCreate) {
 		)
 		return
 	} else if err != nil {
-		errors.New("Unable to get thread parent message from database",
-			slog.String("thread", ev.ID),
-			slog.String("parent", ev.ParentID),
-			slog.String("error", err.Error()),
-		).Log(log)
+		evErr.Wrap(e.New("Failed to get thread message"), err).Log(log).Send(s, ev.ID)
 		return
 	}
 
@@ -64,28 +66,21 @@ func (h ThreadCreate) Serve(s *dgo.Session, ev *dgo.ThreadCreate) {
 		)
 		return
 	} else if err != nil {
-		errors.NewErrDatabase(
-			slog.String("thread message", ev.ID),
-			slog.String("parent channel", ev.ParentID),
-			slog.String("error", err.Error()),
-		).LogSend(log, s, ev.ParentID)
+		evErr.Wrapf("Failed to get parent's translated messagas", err).
+			AddData("OriginMessageID", originMsg.ID).
+			AddData("OriginChannelID", originMsg.ChannelID).
+			Log(log).
+			Send(s, ev.ID)
 		return
 	}
 	msgs = append(msgs, originMsg)
 
 	dth, err := s.Channel(ev.ID)
 	if err != nil {
-		errors.New("Failed to get message thread object",
-			slog.String("thread", ev.ID),
-			slog.String("parent", ev.ParentID),
-			slog.String("error", err.Error()),
-		).LogSend(log, s, ev.ParentID)
+		evErr.Wrapf("Failed to get discord thread", err).Log(log).Send(s, ev.ID)
 		return
 	} else if !dth.IsThread() {
-		errors.New("Channel is not a thread for some reason",
-			slog.String("channel", ev.ID),
-			slog.String("parent", ev.ParentID),
-		).LogSend(log, s, ev.ID)
+		evErr.Wrapf("Channel is not a thread").Log(log).Send(s, ev.ID)
 		return
 	}
 
@@ -97,11 +92,7 @@ func (h ThreadCreate) Serve(s *dgo.Session, ev *dgo.ThreadCreate) {
 		)
 		return
 	} else if err != nil {
-		errors.New("Failed to add origin thread channel to database",
-			slog.String("thread", dth.ID),
-			slog.String("parent", dth.ParentID),
-			slog.String("err", err.Error()),
-		).LogSend(log, s, ev.ID)
+		evErr.Wrapf("Failed to add thread channel to database", err).Log(log).Send(s, ev.ID)
 		return
 	}
 
@@ -135,23 +126,17 @@ func (h ThreadCreate) Serve(s *dgo.Session, ev *dgo.ThreadCreate) {
 				},
 			)
 			if err != nil {
-				errors.New("Failed to create translated thread",
-					slog.String("origin thread", dth.ID),
-					slog.String("origin thread parent", dth.ParentID),
-					slog.String("error", err.Error()),
-				).LogSend(log, s, ev.ID)
+				evErr.Wrapf("Failed to create translated thread", err).Log(log).Send(s, ev.ID)
 				return
 			}
 
 			if err := h.db.ChannelInsert(gdb.NewChannel(dtth.GuildID, dtth.ID, m.Language)); err != nil &&
 				!e.Is(err, gdb.ErrNoAffect) {
-				errors.New("Failed to add thread channel to database",
-					slog.String("thread", dth.ID),
-					slog.String("parent", dth.ParentID),
-					slog.String("origin thread", dth.ID),
-					slog.String("origin thread parent", dth.ParentID),
-					slog.String("err", err.Error()),
-				).LogSend(log, s, dtth.ParentID)
+				evErr.Wrapf("Failed to add translated thread to database", err).
+					AddData("TranslatedThreadID", dtth.ID).
+					AddData("TranslatedParentID", dtth.ParentID).
+					Log(log).
+					Send(s, ev.ID)
 				return
 			}
 		}(m)
@@ -160,22 +145,16 @@ func (h ThreadCreate) Serve(s *dgo.Session, ev *dgo.ThreadCreate) {
 	wg.Wait()
 
 	if err := h.db.ChannelGroupInsert(threadGroup); err != nil {
-		errors.New("Failed to insert group of threads in database",
-			slog.String("origin thread", dth.ID),
-			slog.String("origin thread parent", dth.ParentID),
-			slog.Any("thread group", threadGroup),
-			slog.String("error", err.Error()),
-		).LogSend(log, s, ev.ID)
+		evErr.Wrapf("Failed to add group of threads to database", err).
+			AddData("ThreadGroup", threadGroup).
+			Log(log).
+			Send(s, ev.ID)
 		return
 	}
 
 	thMsgs, err := s.ChannelMessages(th.ID, 10, "", "", "")
 	if err != nil {
-		errors.New("Failed to get thread messages",
-			slog.String("thread", dth.ID),
-			slog.String("parent", dth.ParentID),
-			slog.String("err", err.Error()),
-		).LogSend(log, s, ev.ID)
+		evErr.Wrapf("Failed to get thread messages", err).Log(log).Send(s, ev.ID)
 		return
 	}
 

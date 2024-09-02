@@ -1,10 +1,11 @@
 package events
 
 import (
-	"errors"
+	"dislate/internals/discord/bot/errors"
+	"dislate/internals/discord/bot/gconf"
+	e "errors"
 	"log/slog"
 
-	"dislate/internals/discord/bot/gconf"
 	gdb "dislate/internals/guilddb"
 
 	dgo "github.com/bwmarrin/discordgo"
@@ -19,18 +20,19 @@ func NewGuildCreate(log *slog.Logger, db gconf.DB) GuildCreate {
 	return GuildCreate{log, db}
 }
 
-func (h GuildCreate) Serve(s *dgo.Session, e *dgo.GuildCreate) {
-	err := h.db.GuildInsert(gdb.Guild[gconf.ConfigString]{ID: e.Guild.ID})
+func (h GuildCreate) Serve(s *dgo.Session, ev *dgo.GuildCreate) {
+	err := h.db.GuildInsert(gdb.Guild[gconf.ConfigString]{ID: ev.Guild.ID})
 
-	if err != nil && !errors.Is(err, gdb.ErrNoAffect) {
-		h.log.Error("Failed to add guild to database",
-			slog.String("id", e.Guild.ID),
-			slog.String("err", err.Error()),
-		)
+	evErr := errors.NewEventError[GuildCreate](map[string]any{
+		"GuildID": ev.Guild.ID,
+	})
+
+	if err != nil && !e.Is(err, gdb.ErrNoAffect) {
+		evErr.Wrapf("Failed to add guild to database", err).Log(h.log)
 	} else if err != nil {
-		h.log.Info("Guild already in database", slog.String("id", e.Guild.ID))
+		h.log.Info("Guild already in database", slog.String("id", ev.Guild.ID))
 	} else {
-		h.log.Info("Added guild", slog.String("id", e.Guild.ID))
+		h.log.Info("Added guild", slog.String("id", ev.Guild.ID))
 	}
 }
 
@@ -43,15 +45,14 @@ func NewReady(log *slog.Logger, db gconf.DB) EventHandler[*dgo.Ready] {
 	return Ready{log, db}
 }
 
-func (h Ready) Serve(s *dgo.Session, e *dgo.Ready) {
-	for _, g := range e.Guilds {
+func (h Ready) Serve(s *dgo.Session, ev *dgo.Ready) {
+	evErr := errors.NewEventError[GuildCreate](map[string]any{})
+
+	for _, g := range ev.Guilds {
 		err := h.db.GuildInsert(gdb.Guild[gconf.ConfigString]{ID: g.ID})
 
-		if err != nil && !errors.Is(err, gdb.ErrNoAffect) {
-			h.log.Error("Failed to add guild to database",
-				slog.String("id", g.ID),
-				slog.String("err", err.Error()),
-			)
+		if err != nil && !e.Is(err, gdb.ErrNoAffect) {
+			evErr.Wrapf("Failed to add guild to database", err).AddData("GuildID", g.ID).Log(h.log)
 		} else if err != nil {
 			h.log.Info("Guild already in database", slog.String("id", g.ID))
 		} else {
