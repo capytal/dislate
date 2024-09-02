@@ -32,7 +32,7 @@ func (h MessageCreate) Serve(s *dgo.Session, ev *dgo.MessageCreate) {
 }
 
 func (h MessageCreate) sendMessage(log *slog.Logger, s *dgo.Session, msg *dgo.Message) {
-	evErr := errors.NewEventError[MessageCreate](map[string]any{
+	everr := errors.NewEventError[MessageCreate](map[string]any{
 		"GuildID":   msg.GuildID,
 		"ChannelID": msg.ChannelID,
 		"MessageID": msg.ID,
@@ -47,7 +47,7 @@ func (h MessageCreate) sendMessage(log *slog.Logger, s *dgo.Session, msg *dgo.Me
 		)
 		return
 	} else if err != nil {
-		evErr.Wrapf("Failed to get channel from database", err).Log(log).Reply(s, msg)
+		everr.Wrapf("Failed to get channel from database", err).Log(log).Reply(s, msg)
 		return
 	}
 
@@ -60,13 +60,13 @@ func (h MessageCreate) sendMessage(log *slog.Logger, s *dgo.Session, msg *dgo.Me
 		)
 		return
 	} else if err != nil {
-		evErr.Wrapf("Failed to get channel group from database", err).Log(log).Reply(s, msg)
+		everr.Wrapf("Failed to get channel group from database", err).Log(log).Reply(s, msg)
 		return
 	}
 
 	_, err = getMessage(h.db, msg, ch.Language)
 	if err != nil {
-		evErr.Wrapf("Failed to get/add message to database", err).Log(log).Reply(s, msg)
+		everr.Wrapf("Failed to get/add message to database", err).Log(log).Reply(s, msg)
 		return
 	}
 
@@ -79,7 +79,7 @@ func (h MessageCreate) sendMessage(log *slog.Logger, s *dgo.Session, msg *dgo.Me
 
 			var channelID string
 			if err != nil {
-				evErr.Wrapf("Failed to get information about translated channel", err).
+				everr.Wrapf("Failed to get information about translated channel", err).
 					AddData("TranslatedChannel", c.ID).
 					Log(log).
 					Reply(s, msg)
@@ -92,7 +92,7 @@ func (h MessageCreate) sendMessage(log *slog.Logger, s *dgo.Session, msg *dgo.Me
 
 			uw, err := getUserWebhook(s, channelID, msg.Author)
 			if err != nil {
-				evErr.Wrapf("Failed to get/set user webhook for translated channel", err).
+				everr.Wrapf("Failed to get/set user webhook for translated channel", err).
 					AddData("TranslatedChannel", c.ID).
 					AddData("User", msg.Author.ID).
 					Log(log).
@@ -102,7 +102,7 @@ func (h MessageCreate) sendMessage(log *slog.Logger, s *dgo.Session, msg *dgo.Me
 
 			t, err := h.translator.Translate(ch.Language, c.Language, msg.Content)
 			if err != nil {
-				evErr.Wrapf("Error while trying to translate message", err).
+				everr.Wrapf("Error while trying to translate message", err).
 					AddData("content", msg.Content).
 					Log(log).
 					Reply(s, msg)
@@ -124,7 +124,7 @@ func (h MessageCreate) sendMessage(log *slog.Logger, s *dgo.Session, msg *dgo.Me
 				})
 			}
 			if err != nil {
-				evErr.Wrapf("Error while trying to execute user webhook", err).
+				everr.Wrapf("Error while trying to execute user webhook", err).
 					AddData("content", msg.Content).
 					AddData("User", msg.Author.ID).
 					AddData("Webhook", uw.ID).
@@ -139,7 +139,7 @@ func (h MessageCreate) sendMessage(log *slog.Logger, s *dgo.Session, msg *dgo.Me
 
 			_, err = getTranslatedMessage(h.db, tdm, msg, c.Language)
 			if err != nil {
-				evErr.Wrapf("Error while trying to get/set translated message", err).
+				everr.Wrapf("Error while trying to get/set translated message", err).
 					AddData("TranslatedMessageID", tdm.ID).
 					Log(log).
 					Reply(s, msg)
@@ -166,7 +166,7 @@ func (h MessageUpdate) Serve(s *dgo.Session, ev *dgo.MessageUpdate) {
 
 	log := gconf.GetLogger(ev.Message.GuildID, s, h.db)
 
-	evErr := errors.NewEventError[MessageUpdate](map[string]any{
+	everr := errors.NewEventError[MessageUpdate](map[string]any{
 		"GuildID":   ev.Message.GuildID,
 		"ChannelID": ev.Message.ChannelID,
 		"MessageID": ev.Message.ID,
@@ -180,7 +180,7 @@ func (h MessageUpdate) Serve(s *dgo.Session, ev *dgo.MessageUpdate) {
 		)
 		return
 	} else if err != nil {
-		evErr.Wrapf("Failed to get message from database", err).Log(log).Reply(s, ev.Message)
+		everr.Wrapf("Failed to get message from database", err).Log(log).Reply(s, ev.Message)
 		return
 	}
 
@@ -192,7 +192,7 @@ func (h MessageUpdate) Serve(s *dgo.Session, ev *dgo.MessageUpdate) {
 		)
 		return
 	} else if err != nil {
-		evErr.Wrapf("Failed to get translated messages from database", err).Log(log).Reply(s, ev.Message)
+		everr.Wrapf("Failed to get translated messages from database", err).Log(log).Reply(s, ev.Message)
 		return
 	}
 
@@ -203,7 +203,7 @@ func (h MessageUpdate) Serve(s *dgo.Session, ev *dgo.MessageUpdate) {
 		go func(m guilddb.Message) {
 			var channelID string
 			if dch, err := s.Channel(m.ChannelID); err != nil {
-				evErr.Wrapf("Failed to get information about translated channel", err).
+				everr.Wrapf("Failed to get information about translated channel", err).
 					AddData("TranslatedChannel", m.ChannelID).
 					Log(log).
 					Reply(s, ev.Message)
@@ -215,7 +215,7 @@ func (h MessageUpdate) Serve(s *dgo.Session, ev *dgo.MessageUpdate) {
 
 			uw, err := getUserWebhook(s, channelID, ev.Message.Author)
 			if err != nil {
-				evErr.Wrapf("Failed to get/set user webhook for translated channel", err).
+				everr.Wrapf("Failed to get/set user webhook for translated channel", err).
 					AddData("TranslatedChannel", m.ChannelID).
 					AddData("User", ev.Message.Author.ID).
 					Log(log).
@@ -225,7 +225,7 @@ func (h MessageUpdate) Serve(s *dgo.Session, ev *dgo.MessageUpdate) {
 
 			t, err := h.translator.Translate(msg.Language, m.Language, ev.Message.Content)
 			if err != nil {
-				evErr.Wrapf("Error while trying to translate message", err).
+				everr.Wrapf("Error while trying to translate message", err).
 					AddData("content", ev.Message.Content).
 					Log(log).
 					Reply(s, ev.Message)
@@ -236,7 +236,7 @@ func (h MessageUpdate) Serve(s *dgo.Session, ev *dgo.MessageUpdate) {
 				Content: &t,
 			})
 			if err != nil {
-				evErr.Wrapf("Error while trying to execute user webhook", err).
+				everr.Wrapf("Error while trying to execute user webhook", err).
 					AddData("content", ev.Message.Content).
 					AddData("User", ev.Message.Author.ID).
 					AddData("Webhook", uw.ID).
@@ -263,7 +263,7 @@ func (h MessageDelete) Serve(s *dgo.Session, ev *dgo.MessageDelete) {
 	}
 	log := gconf.GetLogger(ev.Message.GuildID, s, h.db)
 
-	evErr := errors.NewEventError[MessageUpdate](map[string]any{
+	everr := errors.NewEventError[MessageUpdate](map[string]any{
 		"GuildID":   ev.Message.GuildID,
 		"ChannelID": ev.Message.ChannelID,
 		"MessageID": ev.Message.ID,
@@ -277,7 +277,7 @@ func (h MessageDelete) Serve(s *dgo.Session, ev *dgo.MessageDelete) {
 		)
 		return
 	} else if err != nil {
-		evErr.Wrapf("Failed to get message from database", err).Log(log).Reply(s, ev.Message)
+		everr.Wrapf("Failed to get message from database", err).Log(log).Reply(s, ev.Message)
 		return
 	}
 
@@ -301,7 +301,7 @@ func (h MessageDelete) Serve(s *dgo.Session, ev *dgo.MessageDelete) {
 		)
 		return
 	} else if err != nil {
-		evErr.Wrapf("Failed to get translated messages from database", err).Log(log).Reply(s, ev.Message)
+		everr.Wrapf("Failed to get translated messages from database", err).Log(log).Reply(s, ev.Message)
 		return
 	}
 
@@ -329,7 +329,7 @@ func (h MessageDelete) Serve(s *dgo.Session, ev *dgo.MessageDelete) {
 	}
 
 	if err := h.db.MessageDelete(guilddb.NewMessage(msg.GuildID, msg.ChannelID, msg.ID, lang.EN)); err != nil {
-		evErr.Wrapf("Failed to delete message from database", err).Log(log).Send(s, msg.ChannelID)
+		everr.Wrapf("Failed to delete message from database", err).Log(log).Send(s, msg.ChannelID)
 	}
 }
 
