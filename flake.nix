@@ -23,7 +23,7 @@
         hardeningDisable = ["fortify"];
         buildInputs = with pkgs; [
           sqlite
-          sqlitebrowser
+          sqlite-web
           go
           gofumpt
           golangci-lint

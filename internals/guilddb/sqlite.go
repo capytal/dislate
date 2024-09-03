@@ -2,13 +2,12 @@ package guilddb
 
 import (
 	"database/sql"
+	"dislate/internals/translator/lang"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"slices"
 	"strings"
-
-	"dislate/internals/translator/lang"
 
 	_ "github.com/tursodatabase/go-libsql"
 )
@@ -172,6 +171,20 @@ func (db *SQLiteDB[C]) MessageDelete(m Message) error {
 	`, m.GuildID, m.ChannelID, m.ID)
 
 	if err != nil {
+		return errors.Join(ErrInternal, err)
+	} else if rows, _ := r.RowsAffected(); rows == 0 {
+		return ErrNoAffect
+	}
+
+	return nil
+}
+
+func (db *SQLiteDB[C]) MessageDeleteFromChannel(c Channel) error {
+	r, err := db.sql.Exec(`
+		DELETE FROM messages
+			WHERE "GuildID" = $1 AND "ChannelID" = $2
+	`, c.GuildID, c.ID)
+	if err != nil && !errors.Is(err, ErrNoAffect) {
 		return errors.Join(ErrInternal, err)
 	} else if rows, _ := r.RowsAffected(); rows == 0 {
 		return ErrNoAffect

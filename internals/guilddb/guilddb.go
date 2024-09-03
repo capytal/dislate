@@ -1,9 +1,8 @@
 package guilddb
 
 import (
-	"errors"
-
 	"dislate/internals/translator/lang"
+	"errors"
 )
 
 type Guild[C any] struct {
@@ -62,7 +61,10 @@ type GuildDB[C any] interface {
 	// and Message.Language.
 	//
 	// Will return ErrNotFound if no message is found or ErrInternal.
-	MessageWithOriginByLang(guildID, originChannelId, originId string, language lang.Language) (Message, error)
+	MessageWithOriginByLang(
+		guildID, originChannelId, originId string,
+		language lang.Language,
+	) (Message, error)
 	// Inserts a new Message object in the database.
 	//
 	// Message.ChannelID and Message.ID must be a unique pair and not already
@@ -85,6 +87,11 @@ type GuildDB[C any] interface {
 	//
 	// Will return ErrNoAffect if no object was deleted or ErrInternal.
 	MessageDelete(m Message) error
+	// Deletes all messages in a Channel in the database. Channel.ID is used to find
+	// the correct messages.
+	//
+	// Will return ErrNoAffect if no object was deleted or ErrInternal.
+	MessageDeleteFromChannel(c Channel) error
 	// Selects and returns a Channel from the database, based on the
 	// ID provided.
 	//

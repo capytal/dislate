@@ -328,6 +328,22 @@ func (h MessageDelete) Serve(s *dgo.Session, ev *dgo.MessageDelete) {
 		)
 	}
 
+	for _, m := range append(tmsgs, msg) {
+		go func(m guilddb.Message) {
+			err := h.db.MessageDeleteFromChannel(guilddb.NewChannel(m.GuildID, m.ID, lang.EN))
+			if err != nil && !e.Is(err, guilddb.ErrNoAffect) {
+				everr.AddData("ThreadID", m.GuildID).Log(log)
+				return
+			}
+
+			err = h.db.ChannelDelete(guilddb.NewChannel(m.GuildID, m.ID, lang.EN))
+			if err != nil && !e.Is(err, guilddb.ErrNoAffect) {
+				everr.AddData("ThreadID", m.GuildID).Log(log)
+				return
+			}
+		}(m)
+	}
+
 	if err := h.db.MessageDelete(guilddb.NewMessage(msg.GuildID, msg.ChannelID, msg.ID, lang.EN)); err != nil {
 		everr.Wrapf("Failed to delete message from database", err).Log(log).Send(s, msg.ChannelID)
 	}
