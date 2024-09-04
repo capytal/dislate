@@ -1,14 +1,15 @@
 package events
 
 import (
+	e "errors"
+	"log/slog"
+	"slices"
+
 	"dislate/internals/discord/bot/errors"
 	"dislate/internals/discord/bot/gconf"
 	"dislate/internals/guilddb"
 	"dislate/internals/translator"
 	"dislate/internals/translator/lang"
-	e "errors"
-	"log/slog"
-	"slices"
 
 	dgo "github.com/bwmarrin/discordgo"
 )

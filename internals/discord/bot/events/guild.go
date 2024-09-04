@@ -1,10 +1,11 @@
 package events
 
 import (
-	"dislate/internals/discord/bot/errors"
-	"dislate/internals/discord/bot/gconf"
 	e "errors"
 	"log/slog"
+
+	"dislate/internals/discord/bot/errors"
+	"dislate/internals/discord/bot/gconf"
 
 	gdb "dislate/internals/guilddb"
 

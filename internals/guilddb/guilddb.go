@@ -1,8 +1,9 @@
 package guilddb
 
 import (
-	"dislate/internals/translator/lang"
 	"errors"
+
+	"dislate/internals/translator/lang"
 )
 
 type Guild[C any] struct {

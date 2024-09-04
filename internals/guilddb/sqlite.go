@@ -2,12 +2,13 @@ package guilddb
 
 import (
 	"database/sql"
-	"dislate/internals/translator/lang"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"slices"
 	"strings"
+
+	"dislate/internals/translator/lang"
 
 	_ "github.com/tursodatabase/go-libsql"
 )
