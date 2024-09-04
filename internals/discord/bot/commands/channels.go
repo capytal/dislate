@@ -358,7 +358,7 @@ func getChannel(db gconf.DB, guildID, channelID string) (gdb.Channel, error) {
 
 func getChannelInfo(db gconf.DB, ch gdb.Channel) (*dgo.MessageEmbed, error) {
 	group, err := db.ChannelGroup(ch.GuildID, ch.ID)
-	if !errors.Is(err, gdb.ErrNotFound) {
+	if err != nil && !errors.Is(err, gdb.ErrNotFound) {
 		return nil, err
 	}
 
