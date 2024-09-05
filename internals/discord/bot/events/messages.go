@@ -1,15 +1,15 @@
 package events
 
 import (
-	e "errors"
-	"log/slog"
-	"slices"
-
-	"dislate/internals/discord/bot/errors"
+	"dislate/internals/discord/bot/events/errors"
 	"dislate/internals/discord/bot/gconf"
 	"dislate/internals/guilddb"
 	"dislate/internals/translator"
 	"dislate/internals/translator/lang"
+	e "errors"
+	"log/slog"
+	"slices"
+	"sync"
 
 	dgo "github.com/bwmarrin/discordgo"
 )
@@ -23,21 +23,24 @@ func NewMessageCreate(db gconf.DB, t translator.Translator) MessageCreate {
 	return MessageCreate{db, t}
 }
 
-func (h MessageCreate) Serve(s *dgo.Session, ev *dgo.MessageCreate) {
+func (h MessageCreate) Serve(
+	s *dgo.Session,
+	ev *dgo.MessageCreate,
+) errors.EventErr {
 	if ev.Message.Author.Bot || ev.Type != dgo.MessageTypeDefault {
-		return
+		return nil
 	}
 
 	log := gconf.GetLogger(ev.Message.GuildID, s, h.db)
-	h.sendMessage(log, s, ev.Message)
+	return h.sendMessage(log, s, ev.Message)
 }
 
-func (h MessageCreate) sendMessage(log *slog.Logger, s *dgo.Session, msg *dgo.Message) {
-	everr := errors.NewEventError[MessageCreate](map[string]any{
-		"GuildID":   msg.GuildID,
-		"ChannelID": msg.ChannelID,
-		"MessageID": msg.ID,
-	})
+func (h MessageCreate) sendMessage(
+	log *slog.Logger,
+	s *dgo.Session,
+	msg *dgo.Message,
+) errors.EventErr {
+	everr := errors.NewMessageErr[*dgo.MessageCreate](s, msg, log)
 
 	ch, err := h.db.Channel(msg.GuildID, msg.ChannelID)
 	if e.Is(err, guilddb.ErrNotFound) {
@@ -46,10 +49,9 @@ func (h MessageCreate) sendMessage(log *slog.Logger, s *dgo.Session, msg *dgo.Me
 			slog.String("channel", msg.ChannelID),
 			slog.String("message", msg.ID),
 		)
-		return
+		return nil
 	} else if err != nil {
-		everr.Wrapf("Failed to get channel from database", err).Log(log).Reply(s, msg)
-		return
+		return everr.Join(e.New("Failed to get channel from database"), err)
 	}
 
 	gc, err := h.db.ChannelGroup(ch.GuildID, ch.ID)
@@ -59,31 +61,35 @@ func (h MessageCreate) sendMessage(log *slog.Logger, s *dgo.Session, msg *dgo.Me
 			slog.String("channel", msg.ChannelID),
 			slog.String("message", msg.ID),
 		)
-		return
+		return nil
 	} else if err != nil {
-		everr.Wrapf("Failed to get channel group from database", err).Log(log).Reply(s, msg)
-		return
+		return everr.Join(e.New("Failed to get channel group from database"), err)
 	}
 
 	_, err = getMessage(h.db, msg, ch.Language)
 	if err != nil {
-		everr.Wrapf("Failed to get/add message to database", err).Log(log).Reply(s, msg)
-		return
+		return everr.Join(e.New("Failed to get/add message to database"), err)
 	}
+
+	var wg sync.WaitGroup
+	errs := make(chan errors.EventErr)
 
 	for _, c := range gc {
 		if c.ID == ch.ID && c.GuildID == ch.GuildID {
 			continue
 		}
-		go func(c guilddb.Channel) {
+		wg.Add(1)
+		go func(c guilddb.Channel, errs chan<- errors.EventErr) {
+			defer wg.Done()
+
+			everr := errors.NewMessageErr[*dgo.MessageCreate](s, msg, log)
+			everr.AddData("TranslatedChannelID", c.ID)
+
 			dch, err := s.Channel(c.ID)
 
 			var channelID string
 			if err != nil {
-				everr.Wrapf("Failed to get information about translated channel", err).
-					AddData("TranslatedChannel", c.ID).
-					Log(log).
-					Reply(s, msg)
+				errs <- everr.Join(e.New("Failed to get information about translated channel"), err)
 				return
 			} else if dch.IsThread() {
 				channelID = dch.ParentID
@@ -93,20 +99,13 @@ func (h MessageCreate) sendMessage(log *slog.Logger, s *dgo.Session, msg *dgo.Me
 
 			uw, err := getUserWebhook(s, channelID, msg.Author)
 			if err != nil {
-				everr.Wrapf("Failed to get/set user webhook for translated channel", err).
-					AddData("TranslatedChannel", c.ID).
-					AddData("User", msg.Author.ID).
-					Log(log).
-					Reply(s, msg)
+				errs <- everr.Join(e.New("Failed to get/set user webhook for translated channel"), err)
 				return
 			}
 
 			t, err := h.translator.Translate(ch.Language, c.Language, msg.Content)
 			if err != nil {
-				everr.Wrapf("Error while trying to translate message", err).
-					AddData("content", msg.Content).
-					Log(log).
-					Reply(s, msg)
+				errs <- everr.Join(e.New("Error while trying to translate message"), err)
 				return
 			}
 
@@ -125,12 +124,8 @@ func (h MessageCreate) sendMessage(log *slog.Logger, s *dgo.Session, msg *dgo.Me
 				})
 			}
 			if err != nil {
-				everr.Wrapf("Error while trying to execute user webhook", err).
-					AddData("content", msg.Content).
-					AddData("User", msg.Author.ID).
-					AddData("Webhook", uw.ID).
-					Log(log).
-					Reply(s, msg)
+				everr.AddData("WebhookID", uw.ID)
+				errs <- everr.Join(e.New("Error while trying to execute user webhook"), err)
 				return
 			}
 
@@ -140,15 +135,24 @@ func (h MessageCreate) sendMessage(log *slog.Logger, s *dgo.Session, msg *dgo.Me
 
 			_, err = getTranslatedMessage(h.db, tdm, msg, c.Language)
 			if err != nil {
-				everr.Wrapf("Error while trying to get/set translated message", err).
-					AddData("TranslatedMessageID", tdm.ID).
-					Log(log).
-					Reply(s, msg)
+				everr.AddData("WebhookID", uw.ID)
+				everr.AddData("TranslatedMessageID", uw.ID)
+				errs <- everr.Join(e.New("Error while trying to add translated message to dabase"), err)
 				return
 			}
-		}(c)
+		}(c, errs)
 
 	}
+
+	wg.Wait()
+	for err := range errs {
+		everr.Join(err)
+	}
+	if len(errs) > 0 {
+		return everr
+	}
+
+	return nil
 }
 
 type MessageUpdate struct {
@@ -160,18 +164,13 @@ func NewMessageUpdate(db gconf.DB, t translator.Translator) MessageUpdate {
 	return MessageUpdate{db, t}
 }
 
-func (h MessageUpdate) Serve(s *dgo.Session, ev *dgo.MessageUpdate) {
+func (h MessageUpdate) Serve(s *dgo.Session, ev *dgo.MessageUpdate) errors.EventErr {
 	if ev.Message.Author.Bot || ev.Type != dgo.MessageTypeDefault {
-		return
+		return nil
 	}
 
 	log := gconf.GetLogger(ev.Message.GuildID, s, h.db)
-
-	everr := errors.NewEventError[MessageUpdate](map[string]any{
-		"GuildID":   ev.Message.GuildID,
-		"ChannelID": ev.Message.ChannelID,
-		"MessageID": ev.Message.ID,
-	})
+	everr := errors.NewMessageErr[*dgo.MessageUpdate](s, ev.Message, log)
 
 	msg, err := h.db.Message(ev.Message.GuildID, ev.Message.ChannelID, ev.Message.ID)
 	if e.Is(err, guilddb.ErrNotFound) {
@@ -179,10 +178,9 @@ func (h MessageUpdate) Serve(s *dgo.Session, ev *dgo.MessageUpdate) {
 			slog.String("guild", ev.Message.GuildID),
 			slog.String("channel", ev.Message.ChannelID),
 		)
-		return
+		return nil
 	} else if err != nil {
-		everr.Wrapf("Failed to get message from database", err).Log(log).Reply(s, ev.Message)
-		return
+		return everr.Join(e.New("Failed to get message from database"), err)
 	}
 
 	tmsgs, err := h.db.MessagesWithOrigin(msg.GuildID, msg.ChannelID, msg.ID)
@@ -191,23 +189,30 @@ func (h MessageUpdate) Serve(s *dgo.Session, ev *dgo.MessageUpdate) {
 			slog.String("guild", ev.GuildID),
 			slog.String("channel", ev.ChannelID),
 		)
-		return
+		return nil
 	} else if err != nil {
-		everr.Wrapf("Failed to get translated messages from database", err).Log(log).Reply(s, ev.Message)
-		return
+		return everr.Join(e.New("Failed to get translated messages from database"), err)
 	}
+
+	var wg sync.WaitGroup
+	errs := make(chan errors.EventErr)
 
 	for _, m := range tmsgs {
 		if m.ID == msg.ID && m.GuildID == msg.GuildID {
 			continue
 		}
-		go func(m guilddb.Message) {
+		wg.Add(1)
+		go func(m guilddb.Message, errs chan<- errors.EventErr) {
+			defer wg.Done()
+
+			everr := errors.NewMessageErr[*dgo.MessageUpdate](s, ev.Message, log)
+			everr.AddData("TranslatedMessageID", m.ID)
+			everr.AddData("TranslatedChannelID", m.ChannelID)
+
 			var channelID string
 			if dch, err := s.Channel(m.ChannelID); err != nil {
-				everr.Wrapf("Failed to get information about translated channel", err).
-					AddData("TranslatedChannel", m.ChannelID).
-					Log(log).
-					Reply(s, ev.Message)
+				errs <- everr.Join(e.New("Failed to get information about translated channel"), err)
+				return
 			} else if dch.IsThread() {
 				channelID = dch.ParentID
 			} else {
@@ -216,20 +221,13 @@ func (h MessageUpdate) Serve(s *dgo.Session, ev *dgo.MessageUpdate) {
 
 			uw, err := getUserWebhook(s, channelID, ev.Message.Author)
 			if err != nil {
-				everr.Wrapf("Failed to get/set user webhook for translated channel", err).
-					AddData("TranslatedChannel", m.ChannelID).
-					AddData("User", ev.Message.Author.ID).
-					Log(log).
-					Reply(s, ev.Message)
+				errs <- everr.Join(e.New("Failed to get/set user webhook for translated channel"), err)
 				return
 			}
 
 			t, err := h.translator.Translate(msg.Language, m.Language, ev.Message.Content)
 			if err != nil {
-				everr.Wrapf("Error while trying to translate message", err).
-					AddData("content", ev.Message.Content).
-					Log(log).
-					Reply(s, ev.Message)
+				errs <- everr.Join(e.New("Error while trying to translate message"), err)
 				return
 			}
 
@@ -237,17 +235,23 @@ func (h MessageUpdate) Serve(s *dgo.Session, ev *dgo.MessageUpdate) {
 				Content: &t,
 			})
 			if err != nil {
-				everr.Wrapf("Error while trying to execute user webhook", err).
-					AddData("content", ev.Message.Content).
-					AddData("User", ev.Message.Author.ID).
-					AddData("Webhook", uw.ID).
-					Log(log).
-					Reply(s, ev.Message)
+				everr.AddData("WebhookID", uw.ID)
+				errs <- everr.Join(e.New("Error while trying to execute user webhook"), err)
 				return
 			}
-		}(m)
+		}(m, errs)
 
 	}
+
+	wg.Wait()
+	for err := range errs {
+		everr.Join(err)
+	}
+	if len(errs) > 0 {
+		return everr
+	}
+
+	return nil
 }
 
 type MessageDelete struct {
@@ -258,17 +262,13 @@ func NewMessageDelete(db gconf.DB) MessageDelete {
 	return MessageDelete{db}
 }
 
-func (h MessageDelete) Serve(s *dgo.Session, ev *dgo.MessageDelete) {
+func (h MessageDelete) Serve(s *dgo.Session, ev *dgo.MessageDelete) errors.EventErr {
 	if ev.Type != dgo.MessageTypeDefault {
-		return
+		return nil
 	}
-	log := gconf.GetLogger(ev.Message.GuildID, s, h.db)
 
-	everr := errors.NewEventError[MessageUpdate](map[string]any{
-		"GuildID":   ev.Message.GuildID,
-		"ChannelID": ev.Message.ChannelID,
-		"MessageID": ev.Message.ID,
-	})
+	log := gconf.GetLogger(ev.Message.GuildID, s, h.db)
+	everr := errors.NewMessageErr[*dgo.MessageUpdate](s, ev.Message, log)
 
 	msg, err := h.db.Message(ev.Message.GuildID, ev.Message.ChannelID, ev.Message.ID)
 	if e.Is(err, guilddb.ErrNotFound) {
@@ -276,22 +276,25 @@ func (h MessageDelete) Serve(s *dgo.Session, ev *dgo.MessageDelete) {
 			slog.String("guild", ev.Message.GuildID),
 			slog.String("channel", ev.Message.ChannelID),
 		)
-		return
+		return nil
 	} else if err != nil {
-		everr.Wrapf("Failed to get message from database", err).Log(log).Reply(s, ev.Message)
-		return
+		return everr.Join(e.New("Failed to get message from database"), err)
 	}
 
 	var originChannelID, originID string
 	if msg.OriginID != nil && msg.OriginChannelID != nil {
 		oMsg, err := h.db.Message(ev.Message.GuildID, *msg.OriginChannelID, *msg.OriginID)
 		if err != nil {
-			originChannelID, originID = *msg.OriginChannelID, *msg.OriginID
+			originChannelID = *msg.OriginChannelID
+			originID = *msg.OriginID
 		} else {
-			msg, originChannelID, originID = oMsg, oMsg.ChannelID, oMsg.ID
+			msg = oMsg
+			originChannelID = oMsg.ChannelID
+			originID = oMsg.ID
 		}
 	} else {
-		originChannelID, originID = msg.ChannelID, msg.ID
+		originChannelID = msg.ChannelID
+		originID = msg.ID
 	}
 
 	tmsgs, err := h.db.MessagesWithOrigin(msg.GuildID, originChannelID, originID)
@@ -300,10 +303,9 @@ func (h MessageDelete) Serve(s *dgo.Session, ev *dgo.MessageDelete) {
 			slog.String("guild", ev.GuildID),
 			slog.String("channel", ev.ChannelID),
 		)
-		return
+		return nil
 	} else if err != nil {
-		everr.Wrapf("Failed to get translated messages from database", err).Log(log).Reply(s, ev.Message)
-		return
+		return everr.Join(e.New("Failed to get translated messages from database"), err)
 	}
 
 	for _, m := range tmsgs {
@@ -329,25 +331,42 @@ func (h MessageDelete) Serve(s *dgo.Session, ev *dgo.MessageDelete) {
 		)
 	}
 
+	var wg sync.WaitGroup
+	errs := make(chan errors.EventErr)
+
 	for _, m := range append(tmsgs, msg) {
-		go func(m guilddb.Message) {
+		go func(m guilddb.Message, errs chan<- errors.EventErr) {
+			everr := errors.NewMessageErr[*dgo.MessageUpdate](s, ev.Message, log)
+			everr.AddData("TranslatedMessageID", m.ID)
+			everr.AddData("TranslatedChannelID", m.ChannelID)
+
 			err := h.db.MessageDeleteFromChannel(guilddb.NewChannel(m.GuildID, m.ID, lang.EN))
 			if err != nil && !e.Is(err, guilddb.ErrNoAffect) {
-				everr.AddData("ThreadID", m.GuildID).Log(log)
+				errs <- everr.Join(e.New("Failed to delete message from channel"), err)
 				return
 			}
 
 			err = h.db.ChannelDelete(guilddb.NewChannel(m.GuildID, m.ID, lang.EN))
 			if err != nil && !e.Is(err, guilddb.ErrNoAffect) {
-				everr.AddData("ThreadID", m.GuildID).Log(log)
+				errs <- everr.Join(e.New("Failed to delete message thread from channel"), err)
 				return
 			}
-		}(m)
+		}(m, errs)
+	}
+
+	wg.Wait()
+	for err := range errs {
+		everr.Join(err)
+	}
+	if len(errs) > 0 {
+		return everr
 	}
 
 	if err := h.db.MessageDelete(guilddb.NewMessage(msg.GuildID, msg.ChannelID, msg.ID, lang.EN)); err != nil {
-		everr.Wrapf("Failed to delete message from database", err).Log(log).Send(s, msg.ChannelID)
+		return everr.Join(e.New("Failed to delete message from database"), err)
 	}
+
+	return nil
 }
 
 func getUserWebhook(s *dgo.Session, channelID string, user *dgo.User) (*dgo.Webhook, error) {

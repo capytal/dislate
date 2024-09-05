@@ -1,11 +1,10 @@
 package events
 
 import (
+	"dislate/internals/discord/bot/events/errors"
+	"dislate/internals/discord/bot/gconf"
 	e "errors"
 	"log/slog"
-
-	"dislate/internals/discord/bot/errors"
-	"dislate/internals/discord/bot/gconf"
 
 	gdb "dislate/internals/guilddb"
 
@@ -21,20 +20,20 @@ func NewGuildCreate(log *slog.Logger, db gconf.DB) GuildCreate {
 	return GuildCreate{log, db}
 }
 
-func (h GuildCreate) Serve(s *dgo.Session, ev *dgo.GuildCreate) {
+func (h GuildCreate) Serve(s *dgo.Session, ev *dgo.GuildCreate) errors.EventErr {
 	err := h.db.GuildInsert(gdb.Guild[gconf.ConfigString]{ID: ev.Guild.ID})
 
-	everr := errors.NewEventError[GuildCreate](map[string]any{
-		"GuildID": ev.Guild.ID,
-	})
+	everr := errors.NewGuildErr[*dgo.GuildCreate](ev.Guild, h.log)
 
 	if err != nil && !e.Is(err, gdb.ErrNoAffect) {
-		everr.Wrapf("Failed to add guild to database", err).Log(h.log)
+		return everr.Join(e.New("Failed to add guild to database"), err)
 	} else if err != nil {
 		h.log.Info("Guild already in database", slog.String("id", ev.Guild.ID))
 	} else {
 		h.log.Info("Added guild", slog.String("id", ev.Guild.ID))
 	}
+
+	return nil
 }
 
 type Ready struct {
@@ -46,18 +45,20 @@ func NewReady(log *slog.Logger, db gconf.DB) EventHandler[*dgo.Ready] {
 	return Ready{log, db}
 }
 
-func (h Ready) Serve(s *dgo.Session, ev *dgo.Ready) {
-	everr := errors.NewEventError[GuildCreate](map[string]any{})
+func (h Ready) Serve(s *dgo.Session, ev *dgo.Ready) errors.EventErr {
+	everr := errors.NewReadyErr(ev, h.log)
 
 	for _, g := range ev.Guilds {
 		err := h.db.GuildInsert(gdb.Guild[gconf.ConfigString]{ID: g.ID})
 
 		if err != nil && !e.Is(err, gdb.ErrNoAffect) {
-			everr.Wrapf("Failed to add guild to database", err).AddData("GuildID", g.ID).Log(h.log)
+			return everr.Join(err)
 		} else if err != nil {
 			h.log.Info("Guild already in database", slog.String("id", g.ID))
 		} else {
 			h.log.Info("Added guild", slog.String("id", g.ID))
 		}
 	}
+
+	return nil
 }
