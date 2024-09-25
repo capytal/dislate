@@ -7,6 +7,7 @@ import (
 	"dislate/internals/translator"
 	"dislate/internals/translator/lang"
 	e "errors"
+	"fmt"
 	"log/slog"
 	"slices"
 	"sync"
@@ -27,7 +28,7 @@ func (h MessageCreate) Serve(
 	s *dgo.Session,
 	ev *dgo.MessageCreate,
 ) errors.EventErr {
-	if ev.Message.Author.Bot || ev.Type != dgo.MessageTypeDefault {
+	if ev.Message.Author.Bot || (ev.Type != dgo.MessageTypeDefault && ev.Type != dgo.MessageTypeReply) {
 		return nil
 	}
 
@@ -109,6 +110,9 @@ func (h MessageCreate) sendMessage(
 				return
 			}
 
+			if msg.Type == dgo.MessageTypeReply {
+				t = createReply(msg, t)
+			}
 			var tdm *dgo.Message
 			if dch.IsThread() {
 				tdm, err = s.WebhookThreadExecute(uw.ID, uw.Token, true, dch.ID, &dgo.WebhookParams{
@@ -155,6 +159,25 @@ func (h MessageCreate) sendMessage(
 	return nil
 }
 
+func getMessageLink(msg *dgo.MessageReference) string {
+	return fmt.Sprintf("https://discord.com/channels/%s/%s/%s", msg.GuildID, msg.ChannelID, msg.MessageID)
+}
+
+func createReply(msg *dgo.Message, t string) string {
+	msgThreshold := 100
+	if len(msg.ReferencedMessage.Content) < 100 {
+		msgThreshold = len(msg.ReferencedMessage.Content)
+	}
+	// ↩️ or ➡️ ??
+	replyMessage := fmt.Sprintf("↩️<@%s>: [`%s...`](%s)\n%s",
+		msg.ReferencedMessage.Author.ID,
+		msg.ReferencedMessage.Content[:msgThreshold],
+		getMessageLink(msg.MessageReference),
+		t)
+
+	return replyMessage
+}
+
 type MessageUpdate struct {
 	db         gconf.DB
 	translator translator.Translator
@@ -165,7 +188,7 @@ func NewMessageUpdate(db gconf.DB, t translator.Translator) MessageUpdate {
 }
 
 func (h MessageUpdate) Serve(s *dgo.Session, ev *dgo.MessageUpdate) errors.EventErr {
-	if ev.Message.Author.Bot || ev.Type != dgo.MessageTypeDefault {
+	if ev.Message.Author.Bot || (ev.Type != dgo.MessageTypeDefault && ev.Type != dgo.MessageTypeReply) {
 		return nil
 	}
 
@@ -263,7 +286,7 @@ func NewMessageDelete(db gconf.DB) MessageDelete {
 }
 
 func (h MessageDelete) Serve(s *dgo.Session, ev *dgo.MessageDelete) errors.EventErr {
-	if ev.Type != dgo.MessageTypeDefault {
+		if ev.Type != dgo.MessageTypeDefault && ev.Type != dgo.MessageTypeReply {
 		return nil
 	}
 
