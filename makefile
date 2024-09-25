@@ -30,6 +30,8 @@ dev:
 run: build
 	./bin/dislate
 
+re: build dev
+
 clean:
 	if [[ -d "dist" ]]; then rm -r ./dist; fi
 	if [[ -d "tmp" ]]; then rm -r ./tmp; fi
