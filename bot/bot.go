@@ -1,61 +1,49 @@
 package bot
 
 import (
+	"database/sql"
 	"log/slog"
 
+	"forge.capytal.company/capytal/dislate/db"
 	"forge.capytal.company/capytal/dislate/translator"
-
-	"forge.capytal.company/capytal/dislate/bot/gconf"
-
-	dgo "github.com/bwmarrin/discordgo"
+	"github.com/bwmarrin/discordgo"
 )
 
 type Bot struct {
-	token      string
-	db         gconf.DB
 	translator translator.Translator
-	session    *dgo.Session
+	db         *db.Queries
 	logger     *slog.Logger
+	session    *discordgo.Session
 }
 
 func NewBot(
 	token string,
-	db gconf.DB,
+	database *sql.DB,
 	translator translator.Translator,
-	logger *slog.Logger,
+	log *slog.Logger,
 ) (*Bot, error) {
-	discord, err := dgo.New("Bot " + token)
+	s, err := discordgo.New(token)
 	if err != nil {
-		return &Bot{}, err
+		return nil, err
+	}
+
+	db, err := db.Prepare(database)
+	if err != nil {
+		return nil, err
 	}
 
 	return &Bot{
-		token:      token,
+		session:    s,
 		db:         db,
 		translator: translator,
-		session:    discord,
-		logger:     logger,
+		logger:     log,
 	}, nil
 }
 
 func (b *Bot) Start() error {
-	b.registerEventHandlers()
-
-	b.session.Identify.Intents = dgo.MakeIntent(dgo.IntentsAllWithoutPrivileged)
-
-	if err := b.session.Open(); err != nil {
-		return err
-	}
-
-	if err := b.registerCommands(); err != nil {
-		return err
-	}
-	return nil
+	return b.session.Open()
 }
 
 func (b *Bot) Stop() error {
-	if err := b.removeCommands(); err != nil {
-		return err
-	}
 	return b.session.Close()
 }

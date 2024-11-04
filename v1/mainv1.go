@@ -1,7 +1,6 @@
 package main
 
 import (
-	"database/sql"
 	"flag"
 	"log/slog"
 	"os"
@@ -10,9 +9,9 @@ import (
 	"time"
 
 	"forge.capytal.company/capytal/dislate/bot"
+	"forge.capytal.company/capytal/dislate/botv1/gconf"
+	"forge.capytal.company/capytal/dislate/guilddb"
 	"forge.capytal.company/capytal/dislate/translator"
-
-	_ "github.com/tursodatabase/go-libsql"
 
 	"github.com/charmbracelet/log"
 )
@@ -44,14 +43,12 @@ func main() {
 		ReportCaller:    true,
 	}))
 
-	db, err := sql.Open("libsql", "file://sqlite.db")
+	db, err := guilddb.NewSQLiteDB[gconf.ConfigString](*database_file + "?_busy_timeout=5000")
 	if err != nil {
-		logger.Error("Failed to start SQLite database", slog.String("error", err.Error()))
+		logger.Error("Failed to open database connection", slog.String("err", err.Error()))
 		return
 	}
-
 	logger.Info("Connection to database started", slog.String("file", *database_file))
-
 	defer func() {
 		err := db.Close()
 		if err != nil {
@@ -60,6 +57,12 @@ func main() {
 		}
 		logger.Info("Connection to database closed", slog.String("file", *database_file))
 	}()
+
+	if err := db.Prepare(); err != nil {
+		logger.Error("Failed to prepare database", slog.String("err", err.Error()))
+		return
+	}
+	logger.Info("Database ready to be used")
 
 	bot, err := bot.NewBot(*discord_token, db, translator.NewMockTranslator(), logger)
 	if err != nil {
@@ -70,9 +73,7 @@ func main() {
 		logger.Error("Failed to start discord bot", slog.String("err", err.Error()))
 		return
 	}
-
 	logger.Info("Discord bot started")
-
 	defer func() {
 		if err := bot.Stop(); err != nil {
 			logger.Error("Failed to stop discord bot", slog.String("err", err.Error()))
