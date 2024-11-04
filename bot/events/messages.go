@@ -1,15 +1,15 @@
 package events
 
 import (
-	"dislate/internals/discord/bot/events/errors"
-	"dislate/internals/discord/bot/gconf"
-	"dislate/internals/guilddb"
-	"dislate/internals/translator"
-	"dislate/internals/translator/lang"
 	e "errors"
 	"log/slog"
 	"slices"
 	"sync"
+
+	"forge.capytal.company/capytal/dislate/bot/events/errors"
+	"forge.capytal.company/capytal/dislate/bot/gconf"
+	"forge.capytal.company/capytal/dislate/guilddb"
+	"forge.capytal.company/capytal/dislate/translator"
 
 	dgo "github.com/bwmarrin/discordgo"
 )
@@ -340,13 +340,13 @@ func (h MessageDelete) Serve(s *dgo.Session, ev *dgo.MessageDelete) errors.Event
 			everr.AddData("TranslatedMessageID", m.ID)
 			everr.AddData("TranslatedChannelID", m.ChannelID)
 
-			err := h.db.MessageDeleteFromChannel(guilddb.NewChannel(m.GuildID, m.ID, lang.EN))
+			err := h.db.MessageDeleteFromChannel(guilddb.NewChannel(m.GuildID, m.ID, translator.EN))
 			if err != nil && !e.Is(err, guilddb.ErrNoAffect) {
 				errs <- everr.Join(e.New("Failed to delete message from channel"), err)
 				return
 			}
 
-			err = h.db.ChannelDelete(guilddb.NewChannel(m.GuildID, m.ID, lang.EN))
+			err = h.db.ChannelDelete(guilddb.NewChannel(m.GuildID, m.ID, translator.EN))
 			if err != nil && !e.Is(err, guilddb.ErrNoAffect) {
 				errs <- everr.Join(e.New("Failed to delete message thread from channel"), err)
 				return
@@ -355,14 +355,16 @@ func (h MessageDelete) Serve(s *dgo.Session, ev *dgo.MessageDelete) errors.Event
 	}
 
 	wg.Wait()
+
+	everrs := make([]error, 0, len(errs))
 	for err := range errs {
-		everr.Join(err)
+		everrs = append(everrs, err)
 	}
 	if len(errs) > 0 {
-		return everr
+		return everr.Join(everrs...)
 	}
 
-	if err := h.db.MessageDelete(guilddb.NewMessage(msg.GuildID, msg.ChannelID, msg.ID, lang.EN)); err != nil {
+	if err := h.db.MessageDelete(guilddb.NewMessage(msg.GuildID, msg.ChannelID, msg.ID, translator.EN)); err != nil {
 		return everr.Join(e.New("Failed to delete message from database"), err)
 	}
 
@@ -392,7 +394,7 @@ func getUserWebhook(s *dgo.Session, channelID string, user *dgo.User) (*dgo.Webh
 	return w, nil
 }
 
-func getMessage(db gconf.DB, m *dgo.Message, lang lang.Language) (guilddb.Message, error) {
+func getMessage(db gconf.DB, m *dgo.Message, lang translator.Language) (guilddb.Message, error) {
 	msg, err := db.Message(m.GuildID, m.ChannelID, m.ID)
 
 	if e.Is(err, guilddb.ErrNotFound) {
@@ -411,7 +413,7 @@ func getMessage(db gconf.DB, m *dgo.Message, lang lang.Language) (guilddb.Messag
 func getTranslatedMessage(
 	db gconf.DB,
 	m, original *dgo.Message,
-	lang lang.Language,
+	lang translator.Language,
 ) (guilddb.Message, error) {
 	msg, err := db.Message(m.GuildID, m.ChannelID, m.ID)
 

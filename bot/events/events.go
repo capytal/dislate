@@ -1,7 +1,7 @@
 package events
 
 import (
-	"dislate/internals/discord/bot/events/errors"
+	"forge.capytal.company/capytal/dislate/bot/events/errors"
 
 	dgo "github.com/bwmarrin/discordgo"
 )

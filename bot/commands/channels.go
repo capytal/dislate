@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"strings"
 
-	"dislate/internals/discord/bot/gconf"
-	"dislate/internals/guilddb"
-	"dislate/internals/translator/lang"
+	"forge.capytal.company/capytal/dislate/bot/gconf"
+	"forge.capytal.company/capytal/dislate/guilddb"
+	"forge.capytal.company/capytal/dislate/translator"
 
-	gdb "dislate/internals/guilddb"
+	gdb "forge.capytal.company/capytal/dislate/guilddb"
 
 	dgo "github.com/bwmarrin/discordgo"
 )
@@ -258,8 +258,8 @@ func (c channelsSetLang) Info() *dgo.ApplicationCommand {
 			Name:        "language",
 			Description: "The new language",
 			Choices: []*dgo.ApplicationCommandOptionChoice{
-				{Name: "English (EN)", Value: lang.EN},
-				{Name: "Portuguese (PT)", Value: lang.PT},
+				{Name: "English (EN)", Value: translator.EN},
+				{Name: "Portuguese (PT)", Value: translator.PT},
 			},
 		}, {
 			Type:        dgo.ApplicationCommandOptionChannel,
@@ -280,14 +280,14 @@ func (c channelsSetLang) Handle(s *dgo.Session, ic *dgo.InteractionCreate) error
 
 	var err error
 	var dch *dgo.Channel
-	var l lang.Language
+	var l translator.Language
 
 	if c, ok := opts["language"]; ok {
 		switch c.StringValue() {
-		case string(lang.PT):
-			l = lang.PT
+		case string(translator.PT):
+			l = translator.PT
 		default:
-			l = lang.EN
+			l = translator.EN
 		}
 	} else {
 		return errors.New("language is a required option")
@@ -342,7 +342,7 @@ func (c channelsSetLang) Subcommands() []Command {
 func getChannel(db gconf.DB, guildID, channelID string) (gdb.Channel, error) {
 	ch, err := db.Channel(guildID, channelID)
 	if errors.Is(err, gdb.ErrNotFound) {
-		if err := db.ChannelInsert(gdb.NewChannel(guildID, channelID, lang.EN)); err != nil {
+		if err := db.ChannelInsert(gdb.NewChannel(guildID, channelID, translator.EN)); err != nil {
 			return gdb.Channel{}, err
 		}
 		ch, err = db.Channel(guildID, channelID)

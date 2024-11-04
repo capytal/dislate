@@ -3,7 +3,7 @@ package gconf
 import (
 	"log/slog"
 
-	gdb "dislate/internals/guilddb"
+	gdb "forge.capytal.company/capytal/dislate/guilddb"
 
 	dgo "github.com/bwmarrin/discordgo"
 )

@@ -8,7 +8,7 @@ import (
 	"slices"
 	"strings"
 
-	"dislate/internals/translator/lang"
+	"forge.capytal.company/capytal/dislate/translator"
 
 	_ "github.com/tursodatabase/go-libsql"
 )
@@ -99,7 +99,7 @@ func (db *SQLiteDB[C]) MessagesWithOrigin(
 
 func (db *SQLiteDB[C]) MessageWithOriginByLang(
 	guildID, originChannelID, originID string,
-	language lang.Language,
+	language translator.Language,
 ) (Message, error) {
 	return db.selectMessage(`
 		WHERE "GuildID" = $1 AND "OriginChannelID" = $2 AND "OriginID" = $3  AND "Language" = $4

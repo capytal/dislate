@@ -1,4 +1,4 @@
-module dislate
+module forge.capytal.company/capytal/dislate
 
 go 1.22.5
 

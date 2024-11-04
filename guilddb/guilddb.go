@@ -3,7 +3,7 @@ package guilddb
 import (
 	"errors"
 
-	"dislate/internals/translator/lang"
+	"forge.capytal.company/capytal/dislate/translator"
 )
 
 type Guild[C any] struct {
@@ -18,10 +18,10 @@ func NewGuild[C any](ID string, config C) Guild[C] {
 type Channel struct {
 	GuildID  string
 	ID       string
-	Language lang.Language
+	Language translator.Language
 }
 
-func NewChannel(GuildID, ID string, lang lang.Language) Channel {
+func NewChannel(GuildID, ID string, lang translator.Language) Channel {
 	return Channel{GuildID, ID, lang}
 }
 
@@ -31,18 +31,18 @@ type Message struct {
 	GuildID         string
 	ChannelID       string
 	ID              string
-	Language        lang.Language
+	Language        translator.Language
 	OriginChannelID *string
 	OriginID        *string
 }
 
-func NewMessage(GuildID, ChannelID, ID string, lang lang.Language) Message {
+func NewMessage(GuildID, ChannelID, ID string, lang translator.Language) Message {
 	return Message{GuildID, ChannelID, ID, lang, nil, nil}
 }
 
 func NewTranslatedMessage(
 	GuildID, ChannelID, ID string,
-	lang lang.Language,
+	lang translator.Language,
 	OriginChannelID, OriginID string,
 ) Message {
 	return Message{GuildID, ChannelID, ID, lang, &OriginChannelID, &OriginID}
@@ -64,7 +64,7 @@ type GuildDB[C any] interface {
 	// Will return ErrNotFound if no message is found or ErrInternal.
 	MessageWithOriginByLang(
 		guildID, originChannelId, originId string,
-		language lang.Language,
+		language translator.Language,
 	) (Message, error)
 	// Inserts a new Message object in the database.
 	//

@@ -3,8 +3,9 @@ package bot
 import (
 	"log/slog"
 
-	"dislate/internals/discord/bot/gconf"
-	"dislate/internals/translator"
+	"forge.capytal.company/capytal/dislate/translator"
+
+	"forge.capytal.company/capytal/dislate/bot/gconf"
 
 	dgo "github.com/bwmarrin/discordgo"
 )

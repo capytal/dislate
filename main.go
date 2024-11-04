@@ -8,10 +8,10 @@ import (
 	"syscall"
 	"time"
 
-	"dislate/internals/discord/bot"
-	"dislate/internals/discord/bot/gconf"
-	"dislate/internals/guilddb"
-	"dislate/internals/translator"
+	"forge.capytal.company/capytal/dislate/bot"
+	"forge.capytal.company/capytal/dislate/bot/gconf"
+	"forge.capytal.company/capytal/dislate/guilddb"
+	"forge.capytal.company/capytal/dislate/translator"
 
 	"github.com/charmbracelet/log"
 )

@@ -1,4 +1,4 @@
-package lang
+package translator
 
 type Language string
 

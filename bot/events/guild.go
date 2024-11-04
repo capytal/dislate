@@ -1,12 +1,13 @@
 package events
 
 import (
-	"dislate/internals/discord/bot/events/errors"
-	"dislate/internals/discord/bot/gconf"
 	e "errors"
 	"log/slog"
 
-	gdb "dislate/internals/guilddb"
+	"forge.capytal.company/capytal/dislate/bot/events/errors"
+	"forge.capytal.company/capytal/dislate/bot/gconf"
+
+	gdb "forge.capytal.company/capytal/dislate/guilddb"
 
 	dgo "github.com/bwmarrin/discordgo"
 )

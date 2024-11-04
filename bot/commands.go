@@ -7,7 +7,7 @@ import (
 	"log/slog"
 	"slices"
 
-	"dislate/internals/discord/bot/commands"
+	"forge.capytal.company/capytal/dislate/bot/commands"
 
 	dgo "github.com/bwmarrin/discordgo"
 )
@@ -88,9 +88,12 @@ func (b *Bot) registerCommands() error {
 			)
 
 			opts := ic.Interaction.ApplicationCommandData().Options
-			isSub := slices.IndexFunc(opts, func(o *dgo.ApplicationCommandInteractionDataOption) bool {
-				return o.Type == dgo.ApplicationCommandOptionSubCommand
-			})
+			isSub := slices.IndexFunc(
+				opts,
+				func(o *dgo.ApplicationCommandInteractionDataOption) bool {
+					return o.Type == dgo.ApplicationCommandOptionSubCommand
+				},
+			)
 			if isSub != -1 {
 				sc := opts[isSub]
 
@@ -99,8 +102,11 @@ func (b *Bot) registerCommands() error {
 					_ = s.InteractionRespond(ic.Interaction, &dgo.InteractionResponse{
 						Type: dgo.InteractionResponseDeferredChannelMessageWithSource,
 						Data: &dgo.InteractionResponseData{
-							Content: fmt.Sprintf("Error while trying to handle sub command: %s", err.Error()),
-							Flags:   dgo.MessageFlagsEphemeral,
+							Content: fmt.Sprintf(
+								"Error while trying to handle sub command: %s",
+								err.Error(),
+							),
+							Flags: dgo.MessageFlagsEphemeral,
 						},
 					})
 					b.logger.Error("Failed to handle sub command",
@@ -117,8 +123,11 @@ func (b *Bot) registerCommands() error {
 				_ = s.InteractionRespond(ic.Interaction, &dgo.InteractionResponse{
 					Type: dgo.InteractionResponseDeferredChannelMessageWithSource,
 					Data: &dgo.InteractionResponseData{
-						Content: fmt.Sprintf("Error while trying to handle command: %s", err.Error()),
-						Flags:   dgo.MessageFlagsEphemeral,
+						Content: fmt.Sprintf(
+							"Error while trying to handle command: %s",
+							err.Error(),
+						),
+						Flags: dgo.MessageFlagsEphemeral,
 					},
 				})
 				b.logger.Error("Failed to handle command",

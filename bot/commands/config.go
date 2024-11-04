@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 
-	"dislate/internals/discord/bot/gconf"
+	"forge.capytal.company/capytal/dislate/bot/gconf"
 
 	dgo "github.com/bwmarrin/discordgo"
 )
