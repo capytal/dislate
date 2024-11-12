@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"log/slog"
 
+	"forge.capytal.company/capytal/dislate/commands"
 	"forge.capytal.company/capytal/dislate/db"
 	"forge.capytal.company/capytal/dislate/translator"
 	"github.com/bwmarrin/discordgo"
@@ -41,7 +42,18 @@ func NewBot(
 }
 
 func (b *Bot) Start() error {
-	return b.session.Open()
+	if err := b.session.Open(); err != nil {
+		return err
+	}
+
+	ch := commands.NewCommandsHandler(b.logger, b.session)
+
+	// TODO: add real commands
+	if err := ch.RegisterCommands(make(map[string]commands.Command)); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (b *Bot) Stop() error {

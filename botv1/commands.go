@@ -7,7 +7,7 @@ import (
 	"log/slog"
 	"slices"
 
-	"forge.capytal.company/capytal/dislate/bot/commands"
+	"forge.capytal.company/capytal/dislate/botv1/commands"
 
 	dgo "github.com/bwmarrin/discordgo"
 )
