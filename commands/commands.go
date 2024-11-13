@@ -43,13 +43,9 @@ func (h *CommandsHandler) UpdateCommands(
 		return errors.New("User ID is not set in session state")
 	}
 
-	REGISTERED_COMMANDS := map[CommandName]*discordgo.ApplicationCommand{}
-	registeredCommands, err := h.session.ApplicationCommands(APP_ID, GUILD_ID)
+	registeredCommands, err := h.mapRegisteredCommmands(GUILD_ID)
 	if err != nil {
 		return err
-	}
-	for _, rc := range registeredCommands {
-		REGISTERED_COMMANDS[rc.Name] = rc
 	}
 
 	for _, cmd := range REGISTERED_COMMANDS {
@@ -138,5 +134,21 @@ func (h *CommandsHandler) UpdateCommands(
 	})
 
 	return nil
+}
+
+func (h *CommandsHandler) mapRegisteredCommmands(
+	guildID string,
+) (map[CommandName]*discordgo.ApplicationCommand, error) {
+	cmdMap := map[CommandName]*discordgo.ApplicationCommand{}
+
+	registeredCommands, err := h.session.ApplicationCommands(h.session.State.User.ID, guildID)
+	if err != nil {
+		return cmdMap, err
+	}
+	for _, rc := range registeredCommands {
+		cmdMap[rc.Name] = rc
+	}
+
+	return cmdMap, nil
 }
 
