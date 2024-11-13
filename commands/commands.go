@@ -2,9 +2,7 @@ package commands
 
 import (
 	"errors"
-	"fmt"
 	"log/slog"
-	"reflect"
 
 	"github.com/bwmarrin/discordgo"
 )
@@ -48,28 +46,16 @@ func (h *CommandsHandler) UpdateCommands(
 		return err
 	}
 
-	for _, cmd := range REGISTERED_COMMANDS {
-		if _, isHandled := commands[cmd.Name]; !isHandled {
-			h.logger.Debug("Registered command no longer is being handled, deleting.",
-				slog.String("registered_command_name", cmd.Name),
-				slog.String("registered_command_id", cmd.ID),
-				slog.String("guild_id", GUILD_ID))
-
-			err = h.session.ApplicationCommandDelete(APP_ID, GUILD_ID, cmd.ID)
-			if err != nil {
-				return err
-			}
-
-			delete(REGISTERED_COMMANDS, cmd.Name)
-		}
+	if err := h.removeUnhandledCommands(commands, registeredCommands, GUILD_ID); err != nil {
+		return err
 	}
 
-	handleFuncs := map[CommandName]CommandFunc{}
+	handleFuncs := make(map[CommandName]CommandFunc, len(commands))
 
 	for _, cmd := range commands {
 		var err error
 
-		appCmd, isRegistered := REGISTERED_COMMANDS[cmd.Info().Name]
+		appCmd, isRegistered := registeredCommands[cmd.Info().Name]
 
 		if !isRegistered {
 			h.logger.Debug("Bot command is not registered in application, registering.",
@@ -152,3 +138,26 @@ func (h *CommandsHandler) mapRegisteredCommmands(
 	return cmdMap, nil
 }
 
+func (h *CommandsHandler) removeUnhandledCommands(
+	handledCommands map[CommandName]Command,
+	registeredCommands map[CommandName]*discordgo.ApplicationCommand,
+	guildID string,
+) error {
+	for _, cmd := range registeredCommands {
+		if _, isHandled := handledCommands[cmd.Name]; !isHandled {
+			h.logger.Debug("Registered command no longer is being handled, deleting.",
+				slog.String("registered_command_name", cmd.Name),
+				slog.String("registered_command_id", cmd.ID),
+				slog.String("guild_id", guildID))
+
+			err := h.session.ApplicationCommandDelete(h.session.State.User.ID, guildID, cmd.ID)
+			if err != nil {
+				return err
+			}
+
+			delete(registeredCommands, cmd.Name)
+		}
+	}
+
+	return nil
+}
