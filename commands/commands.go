@@ -29,7 +29,7 @@ func NewCommandsHandler(logger *slog.Logger, session *discordgo.Session) *Comman
 	return &CommandsHandler{logger, session}
 }
 
-func (h *CommandsHandler) RegisterCommands(
+func (h *CommandsHandler) UpdateCommands(
 	commands map[CommandName]Command,
 	guildID ...string,
 ) error {

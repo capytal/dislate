@@ -49,7 +49,7 @@ func (b *Bot) Start() error {
 	ch := commands.NewCommandsHandler(b.logger, b.session)
 
 	// TODO: add real commands
-	if err := ch.RegisterCommands(make(map[string]commands.Command)); err != nil {
+	if err := ch.UpdateCommands(make(map[string]commands.Command)); err != nil {
 		return err
 	}
 
