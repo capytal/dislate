@@ -9,11 +9,11 @@ import (
 
 type Command interface {
 	Info() *discordgo.ApplicationCommand
-	Handle(s *discordgo.Session, i *discordgo.InteractionCreate)
+	Handle(s *discordgo.Session, i *discordgo.InteractionCreate) error
 }
 
 type (
-	CommandFunc = func(s *discordgo.Session, i *discordgo.InteractionCreate)
+	CommandFunc = func(s *discordgo.Session, i *discordgo.InteractionCreate) error
 	CommandName = string
 	CommandId   = string
 )
@@ -99,7 +99,15 @@ func (h *CommandsHandler) UpdateCommands(
 					slog.String("interaction_user_id", i.User.ID),
 					slog.String("interaction_guild_id", i.GuildID),
 				)
-				hf(s, i)
+				if err := hf(s, i); err != nil {
+					h.logger.Error("Failed to run command, error returned.",
+						slog.String("command_data_id", data.ID),
+						slog.String("command_data_name", data.Name),
+						slog.String("interaction_user_id", i.User.ID),
+						slog.String("interaction_guild_id", i.GuildID),
+						slog.String("error", err.Error()),
+					)
+				}
 
 			} else {
 				h.logger.Error("Application command interaction created without having a handler.",
