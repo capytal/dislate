@@ -96,20 +96,28 @@ func (h *CommandsHandler) UpdateCommands(
 	}
 
 	h.session.AddHandler(func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+		var userID string
+		if i.User != nil {
+			userID = i.User.ID
+		} else {
+			userID = i.Member.User.ID
+		}
+
 		if i.Type == discordgo.InteractionApplicationCommand {
 			data := i.ApplicationCommandData()
+
 			if hf, ok := handleFuncs[data.Name]; ok {
 				h.logger.Debug("Handling application command.",
 					slog.String("command_data_id", data.ID),
 					slog.String("command_data_name", data.Name),
-					slog.String("interaction_user_id", i.User.ID),
+					slog.String("interaction_user_id", userID),
 					slog.String("interaction_guild_id", i.GuildID),
 				)
 				if err := hf(s, i); err != nil {
 					h.logger.Error("Failed to run command, error returned.",
 						slog.String("command_data_id", data.ID),
 						slog.String("command_data_name", data.Name),
-						slog.String("interaction_user_id", i.User.ID),
+						slog.String("interaction_user_id", userID),
 						slog.String("interaction_guild_id", i.GuildID),
 						slog.String("error", err.Error()),
 					)
@@ -119,7 +127,7 @@ func (h *CommandsHandler) UpdateCommands(
 				h.logger.Error("Application command interaction created without having a handler.",
 					slog.String("command_data_id", data.ID),
 					slog.String("command_data_name", data.Name),
-					slog.String("interaction_user_id", i.User.ID),
+					slog.String("interaction_user_id", userID),
 					slog.String("interaction_guild_id", i.GuildID),
 				)
 			}
@@ -127,7 +135,7 @@ func (h *CommandsHandler) UpdateCommands(
 			h.logger.Error("Application interaction created without being a command.",
 				slog.String("interaction_id", i.ID),
 				slog.String("interaction_type", i.Type.String()),
-				slog.String("interaction_user_id", i.User.ID),
+				slog.String("interaction_user_id", userID),
 				slog.String("interaction_guild_id", i.GuildID),
 			)
 		}
