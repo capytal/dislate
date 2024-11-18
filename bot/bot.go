@@ -2,6 +2,7 @@ package bot
 
 import (
 	"database/sql"
+	"errors"
 	"log/slog"
 
 	"forge.capytal.company/capytal/dislate/commands"
@@ -50,9 +51,12 @@ func (b *Bot) Start() error {
 
 	ch := commands.NewCommandsHandler(b.logger, b.session)
 
-	// TODO: add real commands
-	if err := ch.UpdateCommands(make(map[string]commands.Command)); err != nil {
-		return err
+	COMMANDS := []commands.Command{
+		&mockCommand{},
+	}
+
+	if err := ch.UpdateCommands(COMMANDS); err != nil {
+		return errors.Join(errors.New("Failed to update commands"), err)
 	}
 
 	return nil
