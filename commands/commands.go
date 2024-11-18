@@ -15,8 +15,8 @@ type Command interface {
 
 type (
 	CommandFunc = func(s *discordgo.Session, ic *discordgo.InteractionCreate) error
-	CommandName = string
-	CommandId   = string
+	commandName        = string
+	commandId          = string
 )
 
 type CommandsHandler struct {
@@ -102,8 +102,8 @@ func (h *CommandsHandler) UpdateCommands(
 	return nil
 }
 
-func (h *CommandsHandler) mapCommands(commands []Command) (map[CommandName]Command, error) {
-	m := make(map[CommandName]Command, len(commands))
+func (h *CommandsHandler) mapCommands(commands []Command) (map[commandName]Command, error) {
+	m := make(map[commandName]Command, len(commands))
 
 	for _, c := range commands {
 		if n := c.Info().Name; n != "" {
@@ -118,8 +118,8 @@ func (h *CommandsHandler) mapCommands(commands []Command) (map[CommandName]Comma
 
 func (h *CommandsHandler) mapRegisteredCommmands(
 	guildID string,
-) (map[CommandName]*discordgo.ApplicationCommand, error) {
-	cmdMap := map[CommandName]*discordgo.ApplicationCommand{}
+) (map[commandName]*discordgo.ApplicationCommand, error) {
+	cmdMap := map[commandName]*discordgo.ApplicationCommand{}
 
 	registeredCommands, err := h.session.ApplicationCommands(h.session.State.User.ID, guildID)
 	if err != nil {
@@ -133,8 +133,8 @@ func (h *CommandsHandler) mapRegisteredCommmands(
 }
 
 func (h *CommandsHandler) removeUnhandledCommands(
-	handledCommands map[CommandName]Command,
-	registeredCommands map[CommandName]*discordgo.ApplicationCommand,
+	handledCommands map[commandName]Command,
+	registeredCommands map[commandName]*discordgo.ApplicationCommand,
 	guildID string,
 ) error {
 	for _, cmd := range registeredCommands {
