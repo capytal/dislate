@@ -44,7 +44,7 @@ func main() {
 		ReportCaller:    true,
 	}))
 
-	db, err := sql.Open("libsql", "file://sqlite.db")
+	db, err := sql.Open("libsql", *database_file)
 	if err != nil {
 		logger.Error("Failed to start SQLite database", slog.String("error", err.Error()))
 		return
