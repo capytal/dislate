@@ -73,7 +73,7 @@ func (h *CommandsHandler) UpdateCommands(
 				return err
 			}
 
-		} else if ok, err := equalCommand(cmd.Info(), appCmd); !ok {
+		} else if y, err := equalToRegistered(cmd.Info(), appCmd); !y {
 			h.logger.Debug("Bot command and registered command are different, deleting registered command for updating.",
 				slog.String("command_name", cmd.Info().Name),
 				slog.String("registered_command_id", appCmd.ID),
