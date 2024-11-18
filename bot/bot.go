@@ -23,7 +23,7 @@ func NewBot(
 	translator translator.Translator,
 	log *slog.Logger,
 ) (*Bot, error) {
-	s, err := discordgo.New(token)
+	s, err := discordgo.New("Bot " + token)
 	if err != nil {
 		return nil, err
 	}
