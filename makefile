@@ -25,7 +25,7 @@ dev/watch:
 
 dev:
 	go run github.com/joho/godotenv/cmd/godotenv@v1.5.1 \
-		go run .
+		go run . -v
 
 run: build
 	./bin/dislate

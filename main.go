@@ -31,6 +31,7 @@ var (
 		os.Getenv("DISCORD_TOKEN"),
 		"Discord bot authentication token",
 	)
+	verbose = flag.Bool("v", false, "Enable debug information.")
 )
 
 func init() {
@@ -38,8 +39,15 @@ func init() {
 }
 
 func main() {
+	var logLevel log.Level
+	if *verbose {
+		logLevel = log.DebugLevel
+	} else {
+		logLevel = log.InfoLevel
+	}
 	logger := slog.New(log.NewWithOptions(os.Stderr, log.Options{
 		TimeFormat:      time.DateTime,
+		Level:           logLevel,
 		ReportTimestamp: true,
 		ReportCaller:    true,
 	}))
