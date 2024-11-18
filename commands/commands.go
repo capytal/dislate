@@ -2,6 +2,7 @@ package commands
 
 import (
 	"errors"
+	"fmt"
 	"log/slog"
 
 	"github.com/bwmarrin/discordgo"
@@ -28,12 +29,17 @@ func NewCommandsHandler(logger *slog.Logger, session *discordgo.Session) *Comman
 }
 
 func (h *CommandsHandler) UpdateCommands(
-	commands map[CommandName]Command,
+	commands []Command,
 	guildID ...string,
 ) error {
 	var GUILD_ID string
 	if len(guildID) > 0 {
 		GUILD_ID = guildID[0]
+	}
+
+	commandsMap, err := h.mapCommands(commands)
+	if err != nil {
+		return err
 	}
 
 	APP_ID := h.session.State.User.ID
@@ -46,13 +52,13 @@ func (h *CommandsHandler) UpdateCommands(
 		return err
 	}
 
-	if err := h.removeUnhandledCommands(commands, registeredCommands, GUILD_ID); err != nil {
+	if err := h.removeUnhandledCommands(commandsMap, registeredCommands, GUILD_ID); err != nil {
 		return err
 	}
 
-	handleFuncs := make(map[CommandName]CommandFunc, len(commands))
+	handleFuncs := make(map[CommandName]CommandFunc, len(commandsMap))
 
-	for _, cmd := range commands {
+	for _, cmd := range commandsMap {
 		var err error
 
 		appCmd, isRegistered := registeredCommands[cmd.Info().Name]
@@ -128,6 +134,20 @@ func (h *CommandsHandler) UpdateCommands(
 	})
 
 	return nil
+}
+
+func (h *CommandsHandler) mapCommands(commands []Command) (map[CommandName]Command, error) {
+	m := make(map[CommandName]Command, len(commands))
+
+	for _, c := range commands {
+		if n := c.Info().Name; n != "" {
+			m[c.Info().Name] = c
+		} else {
+			return m, fmt.Errorf("Command doesn't have a valid name!")
+		}
+	}
+
+	return m, nil
 }
 
 func (h *CommandsHandler) mapRegisteredCommmands(
