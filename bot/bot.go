@@ -28,6 +28,8 @@ func NewBot(
 		return nil, err
 	}
 
+	s.Identify.Intents = discordgo.MakeIntent(discordgo.IntentsAllWithoutPrivileged)
+
 	db, err := db.Prepare(database)
 	if err != nil {
 		return nil, err
