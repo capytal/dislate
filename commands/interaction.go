@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"fmt"
 	"log/slog"
 
 	"github.com/bwmarrin/discordgo"
@@ -58,9 +59,22 @@ func (h *CommandsHandler) handleCommand(
 		log.Debug("Handling application command.")
 
 		if err := hf(s, ic); err != nil {
-			log.Error("Failed to run command, error returned.",
-				slog.String("error", err.Error()),
-			)
+			log.Error("Failed to run command, error returned.", slog.String("error", err.Error()))
+
+			_, err = s.ChannelMessageSendComplex(ic.ChannelID, &discordgo.MessageSend{
+				Content: fmt.Sprintf(
+					"<@%s>\nFailed to run command! Error message:\n```\n%s\n```",
+					userID,
+					err.Error(),
+				),
+			})
+			if err != nil {
+				log.Error(
+					"Failed to send error message explaining error... somehow.",
+					slog.String("error", err.Error()),
+				)
+			}
+
 		} else {
 			log.Debug("Command ran successfully.")
 		}
