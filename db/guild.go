@@ -5,7 +5,7 @@ type Guild struct {
 }
 
 const guildCreate = `
-CREATE IF NOT EXISTS guilds (
+CREATE TABLE IF NOT EXISTS guilds (
 	ID     text NOT NULL,
 	PRIMARY KEY(ID)
 );

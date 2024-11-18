@@ -15,7 +15,7 @@ type Message struct {
 }
 
 const messageCreate = `
-CREATE IF NOT EXISTS messages (
+CREATE TABLE IF NOT EXISTS messages (
 	GuildID        text NOT NULL,
 	ChannelID      text NOT NULL,
 	ID             text NOT NULL,

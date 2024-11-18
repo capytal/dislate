@@ -14,7 +14,7 @@ type Channel struct {
 }
 
 const channelCreate = `
-CREATE IF NOT EXISTS channels (
+CREATE TABLE IF NOT EXISTS channels (
 	GuildID        text NOT NULL,
 	ID             text NOT NULL,
 	Language       text NOT NULL,
