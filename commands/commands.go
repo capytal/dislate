@@ -14,7 +14,7 @@ type Command interface {
 }
 
 type (
-	CommandFunc = func(s *discordgo.Session, ic *discordgo.InteractionCreate) error
+	interactionHandler = func(s *discordgo.Session, ic *discordgo.InteractionCreate) error
 	commandName        = string
 	commandId          = string
 )
@@ -56,7 +56,7 @@ func (h *CommandsHandler) UpdateCommands(
 		return err
 	}
 
-	handleFuncs := make(map[CommandName]CommandFunc, len(commandsMap))
+	commandInteractionHandlers := make(map[commandName]interactionHandler, len(commandsMap))
 
 	for _, cmd := range commandsMap {
 		var err error
@@ -92,11 +92,11 @@ func (h *CommandsHandler) UpdateCommands(
 			}
 		}
 
-		handleFuncs[appCmd.Name] = cmd.Handle
+		commandInteractionHandlers[appCmd.Name] = cmd.Handle
 	}
 
 	h.session.AddHandler(func(s *discordgo.Session, ic *discordgo.InteractionCreate) {
-		h.handleInteraction(handleFuncs, s, ic)
+		h.handleInteraction(commandInteractionHandlers, s, ic)
 	})
 
 	return nil
