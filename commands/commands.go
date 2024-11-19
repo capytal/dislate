@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -17,10 +18,27 @@ type Command interface {
 	) error
 }
 
+type CommandWithComponents interface {
+	Command
+	Components() []Component
+}
+
+type Component interface {
+	Info() discordgo.MessageComponent
+	Handle(
+		s *discordgo.Session,
+		ic *discordgo.InteractionCreate,
+		data discordgo.MessageComponentInteractionData,
+	) error
+}
+
 type (
 	commandName        = string
 	commandId          = string
 	commandHandlerFunc = func(s *discordgo.Session, ic *discordgo.InteractionCreate, data discordgo.ApplicationCommandInteractionData) error
+
+	componentCustomId    = string
+	componentHandlerFunc = func(s *discordgo.Session, ic *discordgo.InteractionCreate, data discordgo.MessageComponentInteractionData) error
 )
 
 type CommandsHandler struct {
@@ -61,6 +79,7 @@ func (h *CommandsHandler) UpdateCommands(
 	}
 
 	commandInteractionHandlers := make(map[commandName]commandHandlerFunc, len(commandsMap))
+	componentInteractionHandlers := make(map[componentCustomId]componentHandlerFunc)
 
 	for _, cmd := range commandsMap {
 		var err error
@@ -96,11 +115,59 @@ func (h *CommandsHandler) UpdateCommands(
 			}
 		}
 
+		if withCompsCmd, ok := cmd.(CommandWithComponents); ok {
+			for _, comp := range withCompsCmd.Components() {
+				var id string
+
+				if comp.Info().Type() == discordgo.ActionsRowComponent {
+					// TODO
+				} else if comp.Info().Type() == discordgo.ButtonComponent {
+					button, ok := comp.Info().(*discordgo.Button)
+					if !ok {
+						return fmt.Errorf("Failed to convert ButtonComponent to Button struct on command %q", appCmd.Name)
+					}
+
+					switch {
+					case button.CustomID == "" && button.URL == "":
+						return fmt.Errorf("Button component on command %q does not have a valid CustomID or URL", appCmd.Name)
+					case button.CustomID != "" && button.URL != "":
+						return fmt.Errorf("Button component on command %q has mutually exclusive CustomID and URL", appCmd.Name)
+					case button.CustomID != "":
+						id = button.CustomID
+					case button.URL != "":
+						id = button.URL
+					}
+				} else {
+					j, err := comp.Info().MarshalJSON()
+					if err != nil {
+						return err
+					}
+
+					var v struct{ CustomID string }
+					if err := json.Unmarshal(j, &v); err != nil {
+						return err
+					}
+
+					id = v.CustomID
+				}
+
+				if _, ok := componentInteractionHandlers[id]; ok {
+					return fmt.Errorf(
+						"Component of ID %q used in command %q already exists!",
+						id,
+						appCmd.Name,
+					)
+				}
+
+				componentInteractionHandlers[id] = comp.Handle
+			}
+		}
+
 		commandInteractionHandlers[appCmd.Name] = cmd.Handle
 	}
 
 	h.session.AddHandler(func(s *discordgo.Session, ic *discordgo.InteractionCreate) {
-		h.handleInteraction(commandInteractionHandlers, s, ic)
+		h.handleInteraction(commandInteractionHandlers, componentInteractionHandlers, s, ic)
 	})
 
 	return nil
