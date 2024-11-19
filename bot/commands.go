@@ -22,9 +22,11 @@ func (c *mockCommand) Info() *discordgo.ApplicationCommand {
 	}
 }
 
-func (c *mockCommand) Handle(s *discordgo.Session, i *discordgo.InteractionCreate) error {
-	data := i.ApplicationCommandData()
-
+func (c *mockCommand) Handle(
+	s *discordgo.Session,
+	ic *discordgo.InteractionCreate,
+	data discordgo.ApplicationCommandInteractionData,
+) error {
 	if len(data.Options) == 0 {
 		return errors.New("Option \"message\" is not defined")
 	}
@@ -34,7 +36,7 @@ func (c *mockCommand) Handle(s *discordgo.Session, i *discordgo.InteractionCreat
 		return errors.New("Failed to convert \"message\" into string")
 	}
 
-	return s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+	return s.InteractionRespond(ic.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
 			Content: fmt.Sprintf("Hello user! Your text is %q", text),

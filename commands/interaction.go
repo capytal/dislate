@@ -8,7 +8,7 @@ import (
 )
 
 func (h *CommandsHandler) handleInteraction(
-	cmdsFunc map[CommandName]CommandFunc,
+	cmdsHandlers map[commandName]commandHandlerFunc,
 	s *discordgo.Session,
 	ic *discordgo.InteractionCreate,
 ) {
@@ -21,7 +21,7 @@ func (h *CommandsHandler) handleInteraction(
 
 	switch ic.Type {
 	case discordgo.InteractionApplicationCommand:
-		h.handleCommand(cmdsFunc, s, ic)
+		h.handleCommandInteraction(cmdsHandlers, s, ic)
 	case discordgo.InteractionMessageComponent:
 		// TODO!
 	default:
@@ -34,8 +34,8 @@ func (h *CommandsHandler) handleInteraction(
 	}
 }
 
-func (h *CommandsHandler) handleCommand(
-	cmdsFunc map[CommandName]CommandFunc,
+func (h *CommandsHandler) handleCommandInteraction(
+	cmdsHandlers map[commandName]commandHandlerFunc,
 	s *discordgo.Session,
 	ic *discordgo.InteractionCreate,
 ) {
@@ -55,10 +55,10 @@ func (h *CommandsHandler) handleCommand(
 		slog.String("interaction_guild_id", ic.GuildID),
 	)
 
-	if hf, ok := cmdsFunc[data.Name]; ok {
+	if hf, ok := cmdsHandlers[data.Name]; ok {
 		log.Debug("Handling application command.")
 
-		if err := hf(s, ic); err != nil {
+		if err := hf(s, ic, data); err != nil {
 			log.Error("Failed to run command, error returned.", slog.String("error", err.Error()))
 
 			_, err = s.ChannelMessageSendComplex(ic.ChannelID, &discordgo.MessageSend{

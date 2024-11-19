@@ -10,13 +10,17 @@ import (
 
 type Command interface {
 	Info() *discordgo.ApplicationCommand
-	Handle(s *discordgo.Session, ic *discordgo.InteractionCreate) error
+	Handle(
+		s *discordgo.Session,
+		ic *discordgo.InteractionCreate,
+		data discordgo.ApplicationCommandInteractionData,
+	) error
 }
 
 type (
-	interactionHandler = func(s *discordgo.Session, ic *discordgo.InteractionCreate) error
 	commandName        = string
 	commandId          = string
+	commandHandlerFunc = func(s *discordgo.Session, ic *discordgo.InteractionCreate, data discordgo.ApplicationCommandInteractionData) error
 )
 
 type CommandsHandler struct {
@@ -56,7 +60,7 @@ func (h *CommandsHandler) UpdateCommands(
 		return err
 	}
 
-	commandInteractionHandlers := make(map[commandName]interactionHandler, len(commandsMap))
+	commandInteractionHandlers := make(map[commandName]commandHandlerFunc, len(commandsMap))
 
 	for _, cmd := range commandsMap {
 		var err error
