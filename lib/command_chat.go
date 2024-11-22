@@ -103,25 +103,9 @@ type ChatCommandBooleanOption struct {
 	Description              string
 	DescriptionLocalizations map[discordgo.Locale]string
 	Required                 bool
-	Choices                  []*ChatCommandBooleanOptionChoice
-}
-
-type ChatCommandBooleanOptionChoice struct {
-	Name              string
-	NameLocalizations map[discordgo.Locale]string
-	Value             bool
 }
 
 func (o *ChatCommandBooleanOption) ApplicationCommandOption() *discordgo.ApplicationCommandOption {
-	choices := make([]*discordgo.ApplicationCommandOptionChoice, len(o.Choices))
-	for i, v := range o.Choices {
-		choices[i] = &discordgo.ApplicationCommandOptionChoice{
-			Name:              v.Name,
-			NameLocalizations: v.NameLocalizations,
-			Value:             any(v.Value),
-		}
-	}
-
 	return &discordgo.ApplicationCommandOption{
 		Type:                     discordgo.ApplicationCommandOptionBoolean,
 		Name:                     o.Name,
@@ -129,7 +113,6 @@ func (o *ChatCommandBooleanOption) ApplicationCommandOption() *discordgo.Applica
 		Description:              o.Description,
 		DescriptionLocalizations: o.DescriptionLocalizations,
 		Required:                 o.Required,
-		Choices:                  choices,
 	}
 }
 
@@ -144,21 +127,9 @@ type ChatCommandChannelOption struct {
 	Description              string
 	DescriptionLocalizations map[discordgo.Locale]string
 	Required                 bool
-	Choices                  []*ChatCommandChannelOptionChoice
 }
 
-type ChatCommandChannelOptionChoice = ChatCommandStringOptionChoice
-
 func (o *ChatCommandChannelOption) ApplicationCommandOption() *discordgo.ApplicationCommandOption {
-	choices := make([]*discordgo.ApplicationCommandOptionChoice, len(o.Choices))
-	for i, v := range o.Choices {
-		choices[i] = &discordgo.ApplicationCommandOptionChoice{
-			Name:              v.Name,
-			NameLocalizations: v.NameLocalizations,
-			Value:             any(v.Value),
-		}
-	}
-
 	return &discordgo.ApplicationCommandOption{
 		Type:                     discordgo.ApplicationCommandOptionChannel,
 		Name:                     o.Name,
@@ -166,7 +137,6 @@ func (o *ChatCommandChannelOption) ApplicationCommandOption() *discordgo.Applica
 		Description:              o.Description,
 		DescriptionLocalizations: o.DescriptionLocalizations,
 		Required:                 o.Required,
-		Choices:                  choices,
 	}
 }
 
@@ -248,21 +218,9 @@ type ChatCommandMentionableOption struct {
 	Description              string
 	DescriptionLocalizations map[discordgo.Locale]string
 	Required                 bool
-	Choices                  []*ChatCommandMentionableOptionChoice
 }
 
-type ChatCommandMentionableOptionChoice = ChatCommandStringOptionChoice
-
 func (o *ChatCommandMentionableOption) ApplicationCommandOption() *discordgo.ApplicationCommandOption {
-	choices := make([]*discordgo.ApplicationCommandOptionChoice, len(o.Choices))
-	for i, v := range o.Choices {
-		choices[i] = &discordgo.ApplicationCommandOptionChoice{
-			Name:              v.Name,
-			NameLocalizations: v.NameLocalizations,
-			Value:             any(v.Value),
-		}
-	}
-
 	return &discordgo.ApplicationCommandOption{
 		Type:                     discordgo.ApplicationCommandOptionMentionable,
 		Name:                     o.Name,
@@ -270,7 +228,6 @@ func (o *ChatCommandMentionableOption) ApplicationCommandOption() *discordgo.App
 		Description:              o.Description,
 		DescriptionLocalizations: o.DescriptionLocalizations,
 		Required:                 o.Required,
-		Choices:                  choices,
 	}
 }
 
@@ -350,21 +307,9 @@ type ChatCommandRoleOption struct {
 	Description              string
 	DescriptionLocalizations map[discordgo.Locale]string
 	Required                 bool
-	Choices                  []*ChatCommandRoleOptionChoice
 }
 
-type ChatCommandRoleOptionChoice = ChatCommandStringOptionChoice
-
 func (o *ChatCommandRoleOption) ApplicationCommandOption() *discordgo.ApplicationCommandOption {
-	choices := make([]*discordgo.ApplicationCommandOptionChoice, len(o.Choices))
-	for i, v := range o.Choices {
-		choices[i] = &discordgo.ApplicationCommandOptionChoice{
-			Name:              v.Name,
-			NameLocalizations: v.NameLocalizations,
-			Value:             any(v.Value),
-		}
-	}
-
 	return &discordgo.ApplicationCommandOption{
 		Type:                     discordgo.ApplicationCommandOptionRole,
 		Name:                     o.Name,
@@ -372,7 +317,6 @@ func (o *ChatCommandRoleOption) ApplicationCommandOption() *discordgo.Applicatio
 		Description:              o.Description,
 		DescriptionLocalizations: o.DescriptionLocalizations,
 		Required:                 o.Required,
-		Choices:                  choices,
 	}
 }
 
@@ -465,21 +409,9 @@ type ChatCommandUserOption struct {
 	Description              string
 	DescriptionLocalizations map[discordgo.Locale]string
 	Required                 bool
-	Choices                  []*ChatCommandUserOptionChoice
 }
 
-type ChatCommandUserOptionChoice = ChatCommandStringOptionChoice
-
 func (o *ChatCommandUserOption) ApplicationCommandOption() *discordgo.ApplicationCommandOption {
-	choices := make([]*discordgo.ApplicationCommandOptionChoice, len(o.Choices))
-	for i, v := range o.Choices {
-		choices[i] = &discordgo.ApplicationCommandOptionChoice{
-			Name:              v.Name,
-			NameLocalizations: v.NameLocalizations,
-			Value:             any(v.Value),
-		}
-	}
-
 	return &discordgo.ApplicationCommandOption{
 		Type:                     discordgo.ApplicationCommandOptionUser,
 		Name:                     o.Name,
@@ -487,7 +419,6 @@ func (o *ChatCommandUserOption) ApplicationCommandOption() *discordgo.Applicatio
 		Description:              o.Description,
 		DescriptionLocalizations: o.DescriptionLocalizations,
 		Required:                 o.Required,
-		Choices:                  choices,
 	}
 }
 
