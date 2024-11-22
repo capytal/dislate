@@ -8,7 +8,7 @@ import (
 
 type Command interface {
 	ApplicationCommand() *discordgo.ApplicationCommand
-	Validate() (bool, error)
+	Validate() error
 }
 
 type Handler[CTX any] interface {

@@ -45,31 +45,31 @@ func (c *ChatCommand) ApplicationCommand() *discordgo.ApplicationCommand {
 	}
 }
 
-func (c *ChatCommand) Validate() (bool, error) {
+func (c *ChatCommand) Validate() error {
 	switch {
 	case c.Name == "":
-		return false, errors.New("required field \"Name\" is empty")
+		return errors.New("required field \"Name\" is empty")
 	case c.Description == "":
-		return false, errors.New("required field \"Description\" is empty")
+		return errors.New("required field \"Description\" is empty")
 	case c.Handler == nil:
-		return false, errors.New("required field \"Handler\" is empty")
+		return errors.New("required field \"Handler\" is empty")
 	}
 
 	for _, opt := range c.Options {
-		if ok, err := opt.Validate(); !ok {
-			return false, errors.Join(
+		if err := opt.Validate(); err != nil {
+			return errors.Join(
 				fmt.Errorf("option %q is not valid", opt.ApplicationCommandOption().Name),
 				err,
 			)
 		}
 	}
 
-	return true, nil
+	return nil
 }
 
 type ChatCommandOption interface {
 	ApplicationCommandOption() *discordgo.ApplicationCommandOption
-	Validate() (bool, error)
+	Validate() error
 }
 
 type ChatCommandAttachmentOption struct {
@@ -92,7 +92,7 @@ func (o *ChatCommandAttachmentOption) ApplicationCommandOption() *discordgo.Appl
 	}
 }
 
-func (o *ChatCommandAttachmentOption) Validate() (bool, error) {
+func (o *ChatCommandAttachmentOption) Validate() error {
 	return validateOption(o)
 }
 
@@ -116,7 +116,7 @@ func (o *ChatCommandBooleanOption) ApplicationCommandOption() *discordgo.Applica
 	}
 }
 
-func (o *ChatCommandBooleanOption) Validate() (bool, error) {
+func (o *ChatCommandBooleanOption) Validate() error {
 	return validateOption(o)
 }
 
@@ -140,7 +140,7 @@ func (o *ChatCommandChannelOption) ApplicationCommandOption() *discordgo.Applica
 	}
 }
 
-func (o *ChatCommandChannelOption) Validate() (bool, error) {
+func (o *ChatCommandChannelOption) Validate() error {
 	return validateOption(o)
 }
 
@@ -183,17 +183,17 @@ func (o *ChatCommandIntegerOption) ApplicationCommandOption() *discordgo.Applica
 	}
 }
 
-func (o *ChatCommandIntegerOption) Validate() (bool, error) {
+func (o *ChatCommandIntegerOption) Validate() error {
 	for _, c := range o.Choices {
 		if c.Value < o.MinValue {
-			return false, fmt.Errorf(
+			return fmt.Errorf(
 				"choice %q has value (%v) smaller than allowed by field \"MinValue\" (%v)",
 				c.Name,
 				c.Value,
 				o.MinValue,
 			)
 		} else if c.Value > o.MaxValue {
-			return false, fmt.Errorf(
+			return fmt.Errorf(
 				"choice %q has value (%v) bigger than allowed by field \"MaxValue\" (%v)",
 				c.Name,
 				c.Value,
@@ -225,7 +225,7 @@ func (o *ChatCommandMentionableOption) ApplicationCommandOption() *discordgo.App
 	}
 }
 
-func (o *ChatCommandMentionableOption) Validate() (bool, error) {
+func (o *ChatCommandMentionableOption) Validate() error {
 	return validateOption(o)
 }
 
@@ -266,17 +266,17 @@ func (o *ChatCommandNumberOption) ApplicationCommandOption() *discordgo.Applicat
 	}
 }
 
-func (o *ChatCommandNumberOption) Validate() (bool, error) {
+func (o *ChatCommandNumberOption) Validate() error {
 	for _, c := range o.Choices {
 		if c.Value < o.MinValue {
-			return false, fmt.Errorf(
+			return fmt.Errorf(
 				"choice %q has value (%v) smaller than allowed by field \"MinValue\" (%v)",
 				c.Name,
 				c.Value,
 				o.MinValue,
 			)
 		} else if c.Value > o.MaxValue {
-			return false, fmt.Errorf(
+			return fmt.Errorf(
 				"choice %q has value (%v) bigger than allowed by field \"MaxValue\" (%v)",
 				c.Name,
 				c.Value,
@@ -308,7 +308,7 @@ func (o *ChatCommandRoleOption) ApplicationCommandOption() *discordgo.Applicatio
 	}
 }
 
-func (o *ChatCommandRoleOption) Validate() (bool, error) {
+func (o *ChatCommandRoleOption) Validate() error {
 	return validateOption(o)
 }
 
@@ -349,13 +349,13 @@ func (o *ChatCommandStringOption) ApplicationCommandOption() *discordgo.Applicat
 	}
 }
 
-func (o *ChatCommandStringOption) Validate() (bool, error) {
+func (o *ChatCommandStringOption) Validate() error {
 	if o.MinLength > 6000 {
-		return false, errors.New(
+		return errors.New(
 			"field \"MinLength\" has value that exceeds the allowed limit of 6000",
 		)
 	} else if o.MaxLength > 6000 {
-		return false, errors.New(
+		return errors.New(
 			"field \"MaxLength\" has value that exceeds the allowed limit of 6000",
 		)
 	}
@@ -363,7 +363,7 @@ func (o *ChatCommandStringOption) Validate() (bool, error) {
 	for _, c := range o.Choices {
 		l := utf8.RuneCountInString(c.Value)
 		if l < o.MinLength {
-			return false, fmt.Errorf(
+			return fmt.Errorf(
 				"choice %q has value (%q) with length (%v) smaller than allowed by \"MinLength\" field (%v)",
 				c.Name,
 				l,
@@ -371,7 +371,7 @@ func (o *ChatCommandStringOption) Validate() (bool, error) {
 				o.MinLength,
 			)
 		} else if l > o.MaxLength {
-			return false, fmt.Errorf(
+			return fmt.Errorf(
 				"choice %q has value (%q) with length (%v) bigger than allowed by \"MaxLength\" field (%v)",
 				c.Name,
 				l,
@@ -404,28 +404,28 @@ func (o *ChatCommandUserOption) ApplicationCommandOption() *discordgo.Applicatio
 	}
 }
 
-func (o *ChatCommandUserOption) Validate() (bool, error) {
+func (o *ChatCommandUserOption) Validate() error {
 	return validateOption(o)
 }
 
 func validateOption(opt interface {
 	ApplicationCommandOption() *discordgo.ApplicationCommandOption
 },
-) (bool, error) {
+) error {
 	o := opt.ApplicationCommandOption()
 
 	switch {
 	case o.Name == "":
-		return false, errors.New("required field \"Name\" is empty")
+		return errors.New("required field \"Name\" is empty")
 	case o.Description == "":
-		return false, errors.New("required field  \"Description\" is empty")
+		return errors.New("required field  \"Description\" is empty")
 	case len(o.Choices) > 0 && o.Autocomplete:
-		return false, errors.New(
+		return errors.New(
 			"mutually exclusive fields \"Choices\" and \"Autocomplete\" are setted",
 		)
 	}
 
-	return true, nil
+	return nil
 }
 
 type (
