@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"unicode/utf8"
 
 	"github.com/bwmarrin/discordgo"
 )
@@ -219,6 +220,24 @@ func (o *ChatCommandIntegerOption) ApplicationCommandOption() *discordgo.Applica
 }
 
 func (o *ChatCommandIntegerOption) Validate() (bool, error) {
+	for _, c := range o.Choices {
+		if c.Value < o.MinValue {
+			return false, fmt.Errorf(
+				"Choice %q has value (%v) smaller than allowed by property \"MinValue\" (%v)",
+				c.Name,
+				c.Value,
+				o.MinValue,
+			)
+		} else if c.Value > o.MaxValue {
+			return false, fmt.Errorf(
+				"Choice %q has value (%v) bigger than allowed by property \"MaxValue\" (%v)",
+				c.Name,
+				c.Value,
+				o.MaxValue,
+			)
+		}
+	}
+
 	return validateOption(o)
 }
 
@@ -303,6 +322,24 @@ func (o *ChatCommandNumberOption) ApplicationCommandOption() *discordgo.Applicat
 }
 
 func (o *ChatCommandNumberOption) Validate() (bool, error) {
+	for _, c := range o.Choices {
+		if c.Value < o.MinValue {
+			return false, fmt.Errorf(
+				"Choice %q has value (%v) smaller than allowed by property \"MinValue\" (%v)",
+				c.Name,
+				c.Value,
+				o.MinValue,
+			)
+		} else if c.Value > o.MaxValue {
+			return false, fmt.Errorf(
+				"Choice %q has value (%v) bigger than allowed by property \"MaxValue\" (%v)",
+				c.Name,
+				c.Value,
+				o.MaxValue,
+			)
+		}
+	}
+
 	return validateOption(o)
 }
 
@@ -395,6 +432,27 @@ func (o *ChatCommandStringOption) Validate() (bool, error) {
 		return false, errors.New(
 			"Property \"MaxLength\" has value that exceeds the allowed limit of 6000",
 		)
+	}
+
+	for _, c := range o.Choices {
+		l := utf8.RuneCountInString(c.Value)
+		if l < o.MinLength {
+			return false, fmt.Errorf(
+				"Choice %q has value (%q) with length (%v) smaller than allowed by \"MinLength\" property (%v)",
+				c.Name,
+				l,
+				c.Value,
+				o.MinLength,
+			)
+		} else if l > o.MaxLength {
+			return false, fmt.Errorf(
+				"Choice %q has value (%q) with length (%v) bigger than allowed by \"MaxLength\" property (%v)",
+				c.Name,
+				l,
+				c.Value,
+				o.MaxLength,
+			)
+		}
 	}
 
 	return validateOption(o)
