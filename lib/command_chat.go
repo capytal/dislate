@@ -73,6 +73,7 @@ type ChatCommandOption interface {
 
 type ChatCommandStringOption struct {
 	Name                     string
+	Value                    string
 	NameLocalizations        map[discordgo.Locale]string
 	Description              string
 	DescriptionLocalizations map[discordgo.Locale]string
@@ -129,6 +130,7 @@ func (o *ChatCommandStringOption) Validate() (bool, error) {
 
 type ChatCommandIntegerOption struct {
 	Name                     string
+	Value                    int
 	NameLocalizations        map[discordgo.Locale]string
 	Description              string
 	DescriptionLocalizations map[discordgo.Locale]string
@@ -177,6 +179,7 @@ func (o *ChatCommandIntegerOption) Validate() (bool, error) {
 
 type ChatCommandBooleanOption struct {
 	Name                     string
+	Value                    bool
 	NameLocalizations        map[discordgo.Locale]string
 	Description              string
 	DescriptionLocalizations map[discordgo.Locale]string
@@ -217,6 +220,7 @@ func (o *ChatCommandBooleanOption) Validate() (bool, error) {
 
 type ChatCommandUserOption struct {
 	Name                     string
+	Value                    string
 	NameLocalizations        map[discordgo.Locale]string
 	Description              string
 	DescriptionLocalizations map[discordgo.Locale]string
@@ -253,6 +257,7 @@ func (o *ChatCommandUserOption) Validate() (bool, error) {
 
 type ChatCommandChannelOption struct {
 	Name                     string
+	Value                    string
 	NameLocalizations        map[discordgo.Locale]string
 	Description              string
 	DescriptionLocalizations map[discordgo.Locale]string
@@ -289,6 +294,7 @@ func (o *ChatCommandChannelOption) Validate() (bool, error) {
 
 type ChatCommandRoleOption struct {
 	Name                     string
+	Value                    string
 	NameLocalizations        map[discordgo.Locale]string
 	Description              string
 	DescriptionLocalizations map[discordgo.Locale]string
@@ -325,6 +331,7 @@ func (o *ChatCommandRoleOption) Validate() (bool, error) {
 
 type ChatCommandMentionableOption struct {
 	Name                     string
+	Value                    string
 	NameLocalizations        map[discordgo.Locale]string
 	Description              string
 	DescriptionLocalizations map[discordgo.Locale]string
@@ -361,6 +368,7 @@ func (o *ChatCommandMentionableOption) Validate() (bool, error) {
 
 type ChatCommandNumberOption struct {
 	Name                     string
+	Value                    float64
 	NameLocalizations        map[discordgo.Locale]string
 	Description              string
 	DescriptionLocalizations map[discordgo.Locale]string
@@ -407,6 +415,7 @@ func (o *ChatCommandNumberOption) Validate() (bool, error) {
 
 type ChatCommandAttachmentOption struct {
 	Name                     string
+	Value                    string
 	NameLocalizations        map[discordgo.Locale]string
 	Description              string
 	DescriptionLocalizations map[discordgo.Locale]string
