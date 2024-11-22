@@ -439,6 +439,10 @@ func validateOption(opt interface {
 		return false, errors.New("Required property \"Name\" is empty")
 	case o.Description == "":
 		return false, errors.New("Required property \"Description\" is empty")
+	case len(o.Choices) > 0 && o.Autocomplete:
+		return false, errors.New(
+			"Mutually exclusive properties \"Choices\" and \"Autocomplete\" are setted",
+		)
 	}
 
 	return true, nil
