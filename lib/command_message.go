@@ -28,16 +28,16 @@ func (c *MessageCommand) ApplicationCommand() *discordgo.ApplicationCommand {
 	}
 }
 
-func (c *MessageCommand) Validate() (bool, error) {
+func (c *MessageCommand) Validate() error {
 	switch {
 	case c.Name == "":
-		return false, errors.New("Required property \"Name\" is empty")
+		return errors.New("Required property \"Name\" is empty")
 	case c.Description == "":
-		return false, errors.New("Required property \"Description\" is empty")
+		return errors.New("Required property \"Description\" is empty")
 	case c.Handler == nil:
-		return false, errors.New("Required property \"Handler\" is empty")
+		return errors.New("Required property \"Handler\" is empty")
 	}
-	return true, nil
+	return nil
 }
 
 type MessageCommandCtx struct {
