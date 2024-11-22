@@ -369,6 +369,52 @@ func (o *ChatCommandMentionableOption) Validate() (bool, error) {
 	return validateOption(o)
 }
 
+type ChatCommandNumberOption struct {
+	Name                     string
+	NameLocalizations        map[discordgo.Locale]string
+	Description              string
+	DescriptionLocalizations map[discordgo.Locale]string
+	Required                 bool
+	Autocomplete             bool
+	Choices                  []*ChatCommandNumberOptionChoice
+	MinValue                 float64
+	MaxValue                 float64
+}
+
+type ChatCommandNumberOptionChoice struct {
+	Name              string
+	NameLocalizations map[discordgo.Locale]string
+	Value             float64
+}
+
+func (o *ChatCommandNumberOption) ApplicationCommandOption() *discordgo.ApplicationCommandOption {
+	choices := make([]*discordgo.ApplicationCommandOptionChoice, len(o.Choices))
+	for i, v := range o.Choices {
+		choices[i] = &discordgo.ApplicationCommandOptionChoice{
+			Name:              v.Name,
+			NameLocalizations: v.NameLocalizations,
+			Value:             any(v.Value),
+		}
+	}
+
+	return &discordgo.ApplicationCommandOption{
+		Type:                     discordgo.ApplicationCommandOptionNumber,
+		Name:                     o.Name,
+		NameLocalizations:        o.NameLocalizations,
+		Description:              o.Description,
+		DescriptionLocalizations: o.DescriptionLocalizations,
+		Required:                 o.Required,
+		Autocomplete:             o.Autocomplete,
+		MinValue:                 &o.MinValue,
+		MaxValue:                 o.MaxValue,
+		Choices:                  choices,
+	}
+}
+
+func (o *ChatCommandNumberOption) Validate() (bool, error) {
+	return validateOption(o)
+}
+
 func validateOption(opt interface {
 	ApplicationCommandOption() *discordgo.ApplicationCommandOption
 },
