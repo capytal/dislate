@@ -31,8 +31,8 @@ type ChatCommandContext struct {
 }
 
 var (
-	ErrChatCommandOptionNotExists   = errors.New("Chat command option does not exist")
-	ErrChatCommandOptionInvalidType = errors.New("Chat command option is not of the type requested")
+	ErrChatCommandOptionNotExists   = errors.New("chat command option does not exist")
+	ErrChatCommandOptionInvalidType = errors.New("chat command option is not of the type requested")
 )
 
 type ChatCommandContextOptions map[string]ChatCommandOption

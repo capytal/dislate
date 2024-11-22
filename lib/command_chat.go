@@ -48,17 +48,17 @@ func (c *ChatCommand) ApplicationCommand() *discordgo.ApplicationCommand {
 func (c *ChatCommand) Validate() (bool, error) {
 	switch {
 	case c.Name == "":
-		return false, errors.New("Required property \"Name\" is empty")
+		return false, errors.New("required field \"Name\" is empty")
 	case c.Description == "":
-		return false, errors.New("Required property \"Description\" is empty")
+		return false, errors.New("required field \"Description\" is empty")
 	case c.Handler == nil:
-		return false, errors.New("Required property \"Handler\" is empty")
+		return false, errors.New("required field \"Handler\" is empty")
 	}
 
 	for _, opt := range c.Options {
 		if ok, err := opt.Validate(); !ok {
 			return false, errors.Join(
-				fmt.Errorf("Option %q is not valid", opt.ApplicationCommandOption().Name),
+				fmt.Errorf("option %q is not valid", opt.ApplicationCommandOption().Name),
 				err,
 			)
 		}
@@ -187,14 +187,14 @@ func (o *ChatCommandIntegerOption) Validate() (bool, error) {
 	for _, c := range o.Choices {
 		if c.Value < o.MinValue {
 			return false, fmt.Errorf(
-				"Choice %q has value (%v) smaller than allowed by property \"MinValue\" (%v)",
+				"choice %q has value (%v) smaller than allowed by field \"MinValue\" (%v)",
 				c.Name,
 				c.Value,
 				o.MinValue,
 			)
 		} else if c.Value > o.MaxValue {
 			return false, fmt.Errorf(
-				"Choice %q has value (%v) bigger than allowed by property \"MaxValue\" (%v)",
+				"choice %q has value (%v) bigger than allowed by field \"MaxValue\" (%v)",
 				c.Name,
 				c.Value,
 				o.MaxValue,
@@ -270,14 +270,14 @@ func (o *ChatCommandNumberOption) Validate() (bool, error) {
 	for _, c := range o.Choices {
 		if c.Value < o.MinValue {
 			return false, fmt.Errorf(
-				"Choice %q has value (%v) smaller than allowed by property \"MinValue\" (%v)",
+				"choice %q has value (%v) smaller than allowed by field \"MinValue\" (%v)",
 				c.Name,
 				c.Value,
 				o.MinValue,
 			)
 		} else if c.Value > o.MaxValue {
 			return false, fmt.Errorf(
-				"Choice %q has value (%v) bigger than allowed by property \"MaxValue\" (%v)",
+				"choice %q has value (%v) bigger than allowed by field \"MaxValue\" (%v)",
 				c.Name,
 				c.Value,
 				o.MaxValue,
@@ -352,11 +352,11 @@ func (o *ChatCommandStringOption) ApplicationCommandOption() *discordgo.Applicat
 func (o *ChatCommandStringOption) Validate() (bool, error) {
 	if o.MinLength > 6000 {
 		return false, errors.New(
-			"Property \"MinLength\" has value that exceeds the allowed limit of 6000",
+			"field \"MinLength\" has value that exceeds the allowed limit of 6000",
 		)
 	} else if o.MaxLength > 6000 {
 		return false, errors.New(
-			"Property \"MaxLength\" has value that exceeds the allowed limit of 6000",
+			"field \"MaxLength\" has value that exceeds the allowed limit of 6000",
 		)
 	}
 
@@ -364,7 +364,7 @@ func (o *ChatCommandStringOption) Validate() (bool, error) {
 		l := utf8.RuneCountInString(c.Value)
 		if l < o.MinLength {
 			return false, fmt.Errorf(
-				"Choice %q has value (%q) with length (%v) smaller than allowed by \"MinLength\" property (%v)",
+				"choice %q has value (%q) with length (%v) smaller than allowed by \"MinLength\" field (%v)",
 				c.Name,
 				l,
 				c.Value,
@@ -372,7 +372,7 @@ func (o *ChatCommandStringOption) Validate() (bool, error) {
 			)
 		} else if l > o.MaxLength {
 			return false, fmt.Errorf(
-				"Choice %q has value (%q) with length (%v) bigger than allowed by \"MaxLength\" property (%v)",
+				"choice %q has value (%q) with length (%v) bigger than allowed by \"MaxLength\" field (%v)",
 				c.Name,
 				l,
 				c.Value,
@@ -416,12 +416,12 @@ func validateOption(opt interface {
 
 	switch {
 	case o.Name == "":
-		return false, errors.New("Required property \"Name\" is empty")
+		return false, errors.New("required field \"Name\" is empty")
 	case o.Description == "":
-		return false, errors.New("Required property \"Description\" is empty")
+		return false, errors.New("required field  \"Description\" is empty")
 	case len(o.Choices) > 0 && o.Autocomplete:
 		return false, errors.New(
-			"Mutually exclusive properties \"Choices\" and \"Autocomplete\" are setted",
+			"mutually exclusive fields \"Choices\" and \"Autocomplete\" are setted",
 		)
 	}
 
