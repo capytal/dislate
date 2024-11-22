@@ -2,6 +2,7 @@ package bot
 
 import (
 	"errors"
+	"fmt"
 	"slices"
 
 	"github.com/bwmarrin/discordgo"
@@ -52,10 +53,92 @@ func (c *ChatCommand) Validate() (bool, error) {
 	case c.Handler == nil:
 		return false, errors.New("Required property \"Handler\" is empty")
 	}
+
+	for _, opt := range c.Options {
+		if ok, err := opt.Validate(); !ok {
+			return false, errors.Join(
+				fmt.Errorf("Option %q is not valid", opt.ApplicationCommandOption().Name),
+				err,
+			)
+		}
+	}
+
 	return true, nil
 }
 
 type ChatCommandOption interface {
 	ApplicationCommandOption() *discordgo.ApplicationCommandOption
 	Validate() (bool, error)
+}
+
+type ChatCommandStringOption struct {
+	Name                     string
+	NameLocalizations        map[discordgo.Locale]string
+	Description              string
+	DescriptionLocalizations map[discordgo.Locale]string
+	Required                 bool
+	Autocomplete             bool
+	Choices                  []*ChatCommandStringOptionChoice
+	MinLength                int
+	MaxLength                int
+}
+
+type ChatCommandStringOptionChoice struct {
+	Name              string
+	NameLocalizations map[discordgo.Locale]string
+	Value             string
+}
+
+func (o *ChatCommandStringOption) ApplicationCommandOption() *discordgo.ApplicationCommandOption {
+	choices := make([]*discordgo.ApplicationCommandOptionChoice, len(o.Choices))
+	for i, v := range o.Choices {
+		choices[i] = &discordgo.ApplicationCommandOptionChoice{
+			Name:              v.Name,
+			NameLocalizations: v.NameLocalizations,
+			Value:             any(v.Value),
+		}
+	}
+
+	return &discordgo.ApplicationCommandOption{
+		Type:                     discordgo.ApplicationCommandOptionString,
+		Name:                     o.Name,
+		NameLocalizations:        o.NameLocalizations,
+		Description:              o.Description,
+		DescriptionLocalizations: o.DescriptionLocalizations,
+		Required:                 o.Required,
+		Autocomplete:             o.Autocomplete,
+		MinLength:                &o.MinLength,
+		MaxLength:                o.MaxLength,
+		Choices:                  choices,
+	}
+}
+
+func (o *ChatCommandStringOption) Validate() (bool, error) {
+	if o.MinLength > 6000 {
+		return false, errors.New(
+			"Property \"MinLength\" has value that exceeds the allowed limit of 6000",
+		)
+	} else if o.MaxLength > 6000 {
+		return false, errors.New(
+			"Property \"MaxLength\" has value that exceeds the allowed limit of 6000",
+		)
+	}
+
+	return validateOption(o)
+}
+
+func validateOption(opt interface {
+	ApplicationCommandOption() *discordgo.ApplicationCommandOption
+},
+) (bool, error) {
+	o := opt.ApplicationCommandOption()
+
+	switch {
+	case o.Name == "":
+		return false, errors.New("Required property \"Name\" is empty")
+	case o.Description == "":
+		return false, errors.New("Required property \"Description\" is empty")
+	}
+
+	return true, nil
 }
