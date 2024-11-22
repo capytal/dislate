@@ -17,7 +17,7 @@ type ChatCommand struct {
 	Description              string
 	DescriptionLocalizations *map[discordgo.Locale]string
 	Options                  []ChatCommandOption
-	Handler                  Handler[ChatCommandContext]
+	Handler                  Handler[ChatCommandCtx]
 }
 
 func (c *ChatCommand) ApplicationCommand() *discordgo.ApplicationCommand {
@@ -65,6 +65,48 @@ func (c *ChatCommand) Validate() error {
 	}
 
 	return nil
+}
+
+type ChatCommandCtxOptions map[string]ChatCommandOption
+
+func (opts ChatCommandCtxOptions) GetAttachement(
+	key string,
+) (*ChatCommandAttachmentOption, error) {
+	return get[*ChatCommandAttachmentOption](opts, key)
+}
+
+func (opts ChatCommandCtxOptions) GetBoolean(key string) (*ChatCommandBooleanOption, error) {
+	return get[*ChatCommandBooleanOption](opts, key)
+}
+
+func (opts ChatCommandCtxOptions) GetChannel(key string) (*ChatCommandChannelOption, error) {
+	return get[*ChatCommandChannelOption](opts, key)
+}
+
+func (opts ChatCommandCtxOptions) GetInteger(key string) (*ChatCommandIntegerOption, error) {
+	return get[*ChatCommandIntegerOption](opts, key)
+}
+
+func (opts ChatCommandCtxOptions) GetMentionable(
+	key string,
+) (*ChatCommandMentionableOption, error) {
+	return get[*ChatCommandMentionableOption](opts, key)
+}
+
+func (opts ChatCommandCtxOptions) GetNumber(key string) (*ChatCommandNumberOption, error) {
+	return get[*ChatCommandNumberOption](opts, key)
+}
+
+func (opts ChatCommandCtxOptions) GetRole(key string) (*ChatCommandRoleOption, error) {
+	return get[*ChatCommandRoleOption](opts, key)
+}
+
+func (opts ChatCommandCtxOptions) GetString(key string) (*ChatCommandStringOption, error) {
+	return get[*ChatCommandStringOption](opts, key)
+}
+
+func (opts ChatCommandCtxOptions) GetUser(key string) (*ChatCommandUserOption, error) {
+	return get[*ChatCommandUserOption](opts, key)
 }
 
 type ChatCommandOption interface {
@@ -408,6 +450,30 @@ func (o *ChatCommandUserOption) Validate() error {
 	return validateOption(o)
 }
 
+type (
+	optionTypes                            interface{ string | int | float64 }
+	ChatCommandOptionChoice[T optionTypes] struct {
+		Name              string
+		NameLocalizations map[discordgo.Locale]string
+		Value             T
+	}
+)
+
+func get[T ChatCommandOption](opts ChatCommandCtxOptions, key string) (T, error) {
+	var v T
+
+	mv, ok := opts[key]
+	if !ok {
+		return v, ErrChatCommandOptionNotExists
+	}
+
+	if v, ok := mv.(T); !ok {
+		return v, ErrChatCommandOptionInvalidType
+	} else {
+		return v, nil
+	}
+}
+
 func validateOption(opt interface {
 	ApplicationCommandOption() *discordgo.ApplicationCommandOption
 },
@@ -427,12 +493,3 @@ func validateOption(opt interface {
 
 	return nil
 }
-
-type (
-	optionTypes                            interface{ string | int | float64 }
-	ChatCommandOptionChoice[T optionTypes] struct {
-		Name              string
-		NameLocalizations map[discordgo.Locale]string
-		Value             T
-	}
-)
