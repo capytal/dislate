@@ -31,11 +31,11 @@ func (c *MessageCommand) ApplicationCommand() *discordgo.ApplicationCommand {
 func (c *MessageCommand) Validate() error {
 	switch {
 	case c.Name == "":
-		return errors.New("Required property \"Name\" is empty")
+		return errors.New("required field \"Name\" is empty")
 	case c.Description == "":
-		return errors.New("Required property \"Description\" is empty")
+		return errors.New("required field \"Description\" is empty")
 	case c.Handler == nil:
-		return errors.New("Required property \"Handler\" is empty")
+		return errors.New("required field \"Handler\" is empty")
 	}
 	return nil
 }
