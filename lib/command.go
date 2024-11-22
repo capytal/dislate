@@ -30,9 +30,4 @@ type ChatCommandCtx struct {
 	Options ChatCommandCtxOptions
 }
 
-var (
-	ErrChatCommandOptionNotExists   = errors.New("chat command option does not exist")
-	ErrChatCommandOptionInvalidType = errors.New("chat command option is not of the type requested")
-)
-
 

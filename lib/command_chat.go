@@ -9,6 +9,11 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
+var (
+	ErrChatCommandOptionNotExists   = errors.New("chat command option does not exist")
+	ErrChatCommandOptionInvalidType = errors.New("chat command option is not of the type requested")
+)
+
 type ChatCommand struct {
 	Name                     string
 	NameLocalizations        *map[discordgo.Locale]string
