@@ -13,7 +13,7 @@ type MessageCommand struct {
 	NSFW                     *bool
 	Description              string
 	DescriptionLocalizations *map[discordgo.Locale]string
-	Handler                  Handler
+	Handler                  Handler[MessageCommandCtx]
 }
 
 func (c *MessageCommand) ApplicationCommand() *discordgo.ApplicationCommand {
@@ -38,4 +38,8 @@ func (c *MessageCommand) Validate() (bool, error) {
 		return false, errors.New("Required property \"Handler\" is empty")
 	}
 	return true, nil
+}
+
+type MessageCommandCtx struct {
+	Ctx
 }
