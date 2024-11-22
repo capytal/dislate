@@ -72,6 +72,11 @@ func (c *ChatCommand) Validate() error {
 	return nil
 }
 
+type ChatCommandCtx struct {
+	Ctx
+	Options ChatCommandCtxOptions
+}
+
 type ChatCommandCtxOptions map[string]ChatCommandOption
 
 func (opts ChatCommandCtxOptions) GetAttachement(

@@ -1,8 +1,6 @@
 package bot
 
 import (
-	"errors"
-
 	"github.com/bwmarrin/discordgo"
 )
 
@@ -24,10 +22,4 @@ func (h HandlerFunc[CTX]) Handle(ctx CTX) error {
 type Ctx struct {
 	discordgo.Interaction
 }
-
-type ChatCommandCtx struct {
-	Ctx
-	Options ChatCommandCtxOptions
-}
-
 
