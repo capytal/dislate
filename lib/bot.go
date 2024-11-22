@@ -6,6 +6,7 @@ import (
 
 type Bot struct {
 	session  *discordgo.Session
+	commands []Command
 }
 
 func New(token string) (*Bot, error) {
@@ -28,4 +29,8 @@ func (b *Bot) Start() error {
 	}
 
 	return nil
+}
+
+func (b *Bot) HandleCommand(c Command) {
+	b.commands = append(b.commands, c)
 }
