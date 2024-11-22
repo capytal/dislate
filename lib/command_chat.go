@@ -71,26 +71,47 @@ type ChatCommandOption interface {
 	Validate() (bool, error)
 }
 
-type ChatCommandStringOption struct {
+type ChatCommandAttachmentOption struct {
 	Name                     string
 	Value                    string
 	NameLocalizations        map[discordgo.Locale]string
 	Description              string
 	DescriptionLocalizations map[discordgo.Locale]string
 	Required                 bool
-	Autocomplete             bool
-	Choices                  []*ChatCommandStringOptionChoice
-	MinLength                int
-	MaxLength                int
 }
 
-type ChatCommandStringOptionChoice struct {
+func (o *ChatCommandAttachmentOption) ApplicationCommandOption() *discordgo.ApplicationCommandOption {
+	return &discordgo.ApplicationCommandOption{
+		Type:                     discordgo.ApplicationCommandOptionAttachment,
+		Name:                     o.Name,
+		NameLocalizations:        o.NameLocalizations,
+		Description:              o.Description,
+		DescriptionLocalizations: o.DescriptionLocalizations,
+		Required:                 o.Required,
+	}
+}
+
+func (o *ChatCommandAttachmentOption) Validate() (bool, error) {
+	return validateOption(o)
+}
+
+type ChatCommandBooleanOption struct {
+	Name                     string
+	Value                    bool
+	NameLocalizations        map[discordgo.Locale]string
+	Description              string
+	DescriptionLocalizations map[discordgo.Locale]string
+	Required                 bool
+	Choices                  []*ChatCommandBooleanOptionChoice
+}
+
+type ChatCommandBooleanOptionChoice struct {
 	Name              string
 	NameLocalizations map[discordgo.Locale]string
-	Value             string
+	Value             bool
 }
 
-func (o *ChatCommandStringOption) ApplicationCommandOption() *discordgo.ApplicationCommandOption {
+func (o *ChatCommandBooleanOption) ApplicationCommandOption() *discordgo.ApplicationCommandOption {
 	choices := make([]*discordgo.ApplicationCommandOptionChoice, len(o.Choices))
 	for i, v := range o.Choices {
 		choices[i] = &discordgo.ApplicationCommandOptionChoice{
@@ -101,30 +122,54 @@ func (o *ChatCommandStringOption) ApplicationCommandOption() *discordgo.Applicat
 	}
 
 	return &discordgo.ApplicationCommandOption{
-		Type:                     discordgo.ApplicationCommandOptionString,
+		Type:                     discordgo.ApplicationCommandOptionBoolean,
 		Name:                     o.Name,
 		NameLocalizations:        o.NameLocalizations,
 		Description:              o.Description,
 		DescriptionLocalizations: o.DescriptionLocalizations,
 		Required:                 o.Required,
-		Autocomplete:             o.Autocomplete,
-		MinLength:                &o.MinLength,
-		MaxLength:                o.MaxLength,
 		Choices:                  choices,
 	}
 }
 
-func (o *ChatCommandStringOption) Validate() (bool, error) {
-	if o.MinLength > 6000 {
-		return false, errors.New(
-			"Property \"MinLength\" has value that exceeds the allowed limit of 6000",
-		)
-	} else if o.MaxLength > 6000 {
-		return false, errors.New(
-			"Property \"MaxLength\" has value that exceeds the allowed limit of 6000",
-		)
+func (o *ChatCommandBooleanOption) Validate() (bool, error) {
+	return validateOption(o)
+}
+
+type ChatCommandChannelOption struct {
+	Name                     string
+	Value                    string
+	NameLocalizations        map[discordgo.Locale]string
+	Description              string
+	DescriptionLocalizations map[discordgo.Locale]string
+	Required                 bool
+	Choices                  []*ChatCommandChannelOptionChoice
+}
+
+type ChatCommandChannelOptionChoice = ChatCommandStringOptionChoice
+
+func (o *ChatCommandChannelOption) ApplicationCommandOption() *discordgo.ApplicationCommandOption {
+	choices := make([]*discordgo.ApplicationCommandOptionChoice, len(o.Choices))
+	for i, v := range o.Choices {
+		choices[i] = &discordgo.ApplicationCommandOptionChoice{
+			Name:              v.Name,
+			NameLocalizations: v.NameLocalizations,
+			Value:             any(v.Value),
+		}
 	}
 
+	return &discordgo.ApplicationCommandOption{
+		Type:                     discordgo.ApplicationCommandOptionChannel,
+		Name:                     o.Name,
+		NameLocalizations:        o.NameLocalizations,
+		Description:              o.Description,
+		DescriptionLocalizations: o.DescriptionLocalizations,
+		Required:                 o.Required,
+		Choices:                  choices,
+	}
+}
+
+func (o *ChatCommandChannelOption) Validate() (bool, error) {
 	return validateOption(o)
 }
 
@@ -174,158 +219,6 @@ func (o *ChatCommandIntegerOption) ApplicationCommandOption() *discordgo.Applica
 }
 
 func (o *ChatCommandIntegerOption) Validate() (bool, error) {
-	return validateOption(o)
-}
-
-type ChatCommandBooleanOption struct {
-	Name                     string
-	Value                    bool
-	NameLocalizations        map[discordgo.Locale]string
-	Description              string
-	DescriptionLocalizations map[discordgo.Locale]string
-	Required                 bool
-	Choices                  []*ChatCommandBooleanOptionChoice
-}
-
-type ChatCommandBooleanOptionChoice struct {
-	Name              string
-	NameLocalizations map[discordgo.Locale]string
-	Value             bool
-}
-
-func (o *ChatCommandBooleanOption) ApplicationCommandOption() *discordgo.ApplicationCommandOption {
-	choices := make([]*discordgo.ApplicationCommandOptionChoice, len(o.Choices))
-	for i, v := range o.Choices {
-		choices[i] = &discordgo.ApplicationCommandOptionChoice{
-			Name:              v.Name,
-			NameLocalizations: v.NameLocalizations,
-			Value:             any(v.Value),
-		}
-	}
-
-	return &discordgo.ApplicationCommandOption{
-		Type:                     discordgo.ApplicationCommandOptionBoolean,
-		Name:                     o.Name,
-		NameLocalizations:        o.NameLocalizations,
-		Description:              o.Description,
-		DescriptionLocalizations: o.DescriptionLocalizations,
-		Required:                 o.Required,
-		Choices:                  choices,
-	}
-}
-
-func (o *ChatCommandBooleanOption) Validate() (bool, error) {
-	return validateOption(o)
-}
-
-type ChatCommandUserOption struct {
-	Name                     string
-	Value                    string
-	NameLocalizations        map[discordgo.Locale]string
-	Description              string
-	DescriptionLocalizations map[discordgo.Locale]string
-	Required                 bool
-	Choices                  []*ChatCommandUserOptionChoice
-}
-
-type ChatCommandUserOptionChoice = ChatCommandStringOptionChoice
-
-func (o *ChatCommandUserOption) ApplicationCommandOption() *discordgo.ApplicationCommandOption {
-	choices := make([]*discordgo.ApplicationCommandOptionChoice, len(o.Choices))
-	for i, v := range o.Choices {
-		choices[i] = &discordgo.ApplicationCommandOptionChoice{
-			Name:              v.Name,
-			NameLocalizations: v.NameLocalizations,
-			Value:             any(v.Value),
-		}
-	}
-
-	return &discordgo.ApplicationCommandOption{
-		Type:                     discordgo.ApplicationCommandOptionUser,
-		Name:                     o.Name,
-		NameLocalizations:        o.NameLocalizations,
-		Description:              o.Description,
-		DescriptionLocalizations: o.DescriptionLocalizations,
-		Required:                 o.Required,
-		Choices:                  choices,
-	}
-}
-
-func (o *ChatCommandUserOption) Validate() (bool, error) {
-	return validateOption(o)
-}
-
-type ChatCommandChannelOption struct {
-	Name                     string
-	Value                    string
-	NameLocalizations        map[discordgo.Locale]string
-	Description              string
-	DescriptionLocalizations map[discordgo.Locale]string
-	Required                 bool
-	Choices                  []*ChatCommandChannelOptionChoice
-}
-
-type ChatCommandChannelOptionChoice = ChatCommandStringOptionChoice
-
-func (o *ChatCommandChannelOption) ApplicationCommandOption() *discordgo.ApplicationCommandOption {
-	choices := make([]*discordgo.ApplicationCommandOptionChoice, len(o.Choices))
-	for i, v := range o.Choices {
-		choices[i] = &discordgo.ApplicationCommandOptionChoice{
-			Name:              v.Name,
-			NameLocalizations: v.NameLocalizations,
-			Value:             any(v.Value),
-		}
-	}
-
-	return &discordgo.ApplicationCommandOption{
-		Type:                     discordgo.ApplicationCommandOptionChannel,
-		Name:                     o.Name,
-		NameLocalizations:        o.NameLocalizations,
-		Description:              o.Description,
-		DescriptionLocalizations: o.DescriptionLocalizations,
-		Required:                 o.Required,
-		Choices:                  choices,
-	}
-}
-
-func (o *ChatCommandChannelOption) Validate() (bool, error) {
-	return validateOption(o)
-}
-
-type ChatCommandRoleOption struct {
-	Name                     string
-	Value                    string
-	NameLocalizations        map[discordgo.Locale]string
-	Description              string
-	DescriptionLocalizations map[discordgo.Locale]string
-	Required                 bool
-	Choices                  []*ChatCommandRoleOptionChoice
-}
-
-type ChatCommandRoleOptionChoice = ChatCommandStringOptionChoice
-
-func (o *ChatCommandRoleOption) ApplicationCommandOption() *discordgo.ApplicationCommandOption {
-	choices := make([]*discordgo.ApplicationCommandOptionChoice, len(o.Choices))
-	for i, v := range o.Choices {
-		choices[i] = &discordgo.ApplicationCommandOptionChoice{
-			Name:              v.Name,
-			NameLocalizations: v.NameLocalizations,
-			Value:             any(v.Value),
-		}
-	}
-
-	return &discordgo.ApplicationCommandOption{
-		Type:                     discordgo.ApplicationCommandOptionRole,
-		Name:                     o.Name,
-		NameLocalizations:        o.NameLocalizations,
-		Description:              o.Description,
-		DescriptionLocalizations: o.DescriptionLocalizations,
-		Required:                 o.Required,
-		Choices:                  choices,
-	}
-}
-
-func (o *ChatCommandRoleOption) Validate() (bool, error) {
 	return validateOption(o)
 }
 
@@ -413,27 +306,134 @@ func (o *ChatCommandNumberOption) Validate() (bool, error) {
 	return validateOption(o)
 }
 
-type ChatCommandAttachmentOption struct {
+type ChatCommandRoleOption struct {
 	Name                     string
 	Value                    string
 	NameLocalizations        map[discordgo.Locale]string
 	Description              string
 	DescriptionLocalizations map[discordgo.Locale]string
 	Required                 bool
+	Choices                  []*ChatCommandRoleOptionChoice
 }
 
-func (o *ChatCommandAttachmentOption) ApplicationCommandOption() *discordgo.ApplicationCommandOption {
+type ChatCommandRoleOptionChoice = ChatCommandStringOptionChoice
+
+func (o *ChatCommandRoleOption) ApplicationCommandOption() *discordgo.ApplicationCommandOption {
+	choices := make([]*discordgo.ApplicationCommandOptionChoice, len(o.Choices))
+	for i, v := range o.Choices {
+		choices[i] = &discordgo.ApplicationCommandOptionChoice{
+			Name:              v.Name,
+			NameLocalizations: v.NameLocalizations,
+			Value:             any(v.Value),
+		}
+	}
+
 	return &discordgo.ApplicationCommandOption{
-		Type:                     discordgo.ApplicationCommandOptionAttachment,
+		Type:                     discordgo.ApplicationCommandOptionRole,
 		Name:                     o.Name,
 		NameLocalizations:        o.NameLocalizations,
 		Description:              o.Description,
 		DescriptionLocalizations: o.DescriptionLocalizations,
 		Required:                 o.Required,
+		Choices:                  choices,
 	}
 }
 
-func (o *ChatCommandAttachmentOption) Validate() (bool, error) {
+func (o *ChatCommandRoleOption) Validate() (bool, error) {
+	return validateOption(o)
+}
+
+type ChatCommandStringOption struct {
+	Name                     string
+	Value                    string
+	NameLocalizations        map[discordgo.Locale]string
+	Description              string
+	DescriptionLocalizations map[discordgo.Locale]string
+	Required                 bool
+	Autocomplete             bool
+	Choices                  []*ChatCommandStringOptionChoice
+	MinLength                int
+	MaxLength                int
+}
+
+type ChatCommandStringOptionChoice struct {
+	Name              string
+	NameLocalizations map[discordgo.Locale]string
+	Value             string
+}
+
+func (o *ChatCommandStringOption) ApplicationCommandOption() *discordgo.ApplicationCommandOption {
+	choices := make([]*discordgo.ApplicationCommandOptionChoice, len(o.Choices))
+	for i, v := range o.Choices {
+		choices[i] = &discordgo.ApplicationCommandOptionChoice{
+			Name:              v.Name,
+			NameLocalizations: v.NameLocalizations,
+			Value:             any(v.Value),
+		}
+	}
+
+	return &discordgo.ApplicationCommandOption{
+		Type:                     discordgo.ApplicationCommandOptionString,
+		Name:                     o.Name,
+		NameLocalizations:        o.NameLocalizations,
+		Description:              o.Description,
+		DescriptionLocalizations: o.DescriptionLocalizations,
+		Required:                 o.Required,
+		Autocomplete:             o.Autocomplete,
+		MinLength:                &o.MinLength,
+		MaxLength:                o.MaxLength,
+		Choices:                  choices,
+	}
+}
+
+func (o *ChatCommandStringOption) Validate() (bool, error) {
+	if o.MinLength > 6000 {
+		return false, errors.New(
+			"Property \"MinLength\" has value that exceeds the allowed limit of 6000",
+		)
+	} else if o.MaxLength > 6000 {
+		return false, errors.New(
+			"Property \"MaxLength\" has value that exceeds the allowed limit of 6000",
+		)
+	}
+
+	return validateOption(o)
+}
+
+type ChatCommandUserOption struct {
+	Name                     string
+	Value                    string
+	NameLocalizations        map[discordgo.Locale]string
+	Description              string
+	DescriptionLocalizations map[discordgo.Locale]string
+	Required                 bool
+	Choices                  []*ChatCommandUserOptionChoice
+}
+
+type ChatCommandUserOptionChoice = ChatCommandStringOptionChoice
+
+func (o *ChatCommandUserOption) ApplicationCommandOption() *discordgo.ApplicationCommandOption {
+	choices := make([]*discordgo.ApplicationCommandOptionChoice, len(o.Choices))
+	for i, v := range o.Choices {
+		choices[i] = &discordgo.ApplicationCommandOptionChoice{
+			Name:              v.Name,
+			NameLocalizations: v.NameLocalizations,
+			Value:             any(v.Value),
+		}
+	}
+
+	return &discordgo.ApplicationCommandOption{
+		Type:                     discordgo.ApplicationCommandOptionUser,
+		Name:                     o.Name,
+		NameLocalizations:        o.NameLocalizations,
+		Description:              o.Description,
+		DescriptionLocalizations: o.DescriptionLocalizations,
+		Required:                 o.Required,
+		Choices:                  choices,
+	}
+}
+
+func (o *ChatCommandUserOption) Validate() (bool, error) {
 	return validateOption(o)
 }
 
