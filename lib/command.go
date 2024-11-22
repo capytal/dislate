@@ -1,22 +1,32 @@
 package bot
 
-import "github.com/bwmarrin/discordgo"
+import (
+	"errors"
+
+	"github.com/bwmarrin/discordgo"
+)
 
 type Command interface {
 	ApplicationCommand() *discordgo.ApplicationCommand
 	Validate() (bool, error)
 }
 
-type Handler interface {
-	Handle(s *discordgo.Session, ic *discordgo.InteractionCreate) error
+type Handler[CTX any] interface {
+	Handle(ctx CTX) error
 }
 
-type HandlerFunc func(s *discordgo.Session, ic *discordgo.InteractionCreate) error
+type HandlerFunc[CTX any] func(ctx CTX) error
 
-func (h HandlerFunc) Handle(
-	s *discordgo.Session,
-	ic *discordgo.InteractionCreate,
-) error {
-	return h(s, ic)
+func (h HandlerFunc[CTX]) Handle(ctx CTX) error {
+	return h(ctx)
 }
 
+type Context struct {
+	discordgo.Interaction
+}
+
+type ChatCommandContext struct {
+	Context
+}
+
+}

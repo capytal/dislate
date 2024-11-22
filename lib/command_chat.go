@@ -16,7 +16,7 @@ type ChatCommand struct {
 	Description              string
 	DescriptionLocalizations *map[discordgo.Locale]string
 	Options                  []ChatCommandOption
-	Handler                  Handler
+	Handler                  Handler[ChatCommandContext]
 }
 
 func (c *ChatCommand) ApplicationCommand() *discordgo.ApplicationCommand {
