@@ -415,6 +415,31 @@ func (o *ChatCommandNumberOption) Validate() (bool, error) {
 	return validateOption(o)
 }
 
+type ChatCommandAttachmentOption struct {
+	Name                     string
+	NameLocalizations        map[discordgo.Locale]string
+	Description              string
+	DescriptionLocalizations map[discordgo.Locale]string
+	Required                 bool
+	Autocomplete             bool
+}
+
+func (o *ChatCommandAttachmentOption) ApplicationCommandOption() *discordgo.ApplicationCommandOption {
+	return &discordgo.ApplicationCommandOption{
+		Type:                     discordgo.ApplicationCommandOptionAttachment,
+		Name:                     o.Name,
+		NameLocalizations:        o.NameLocalizations,
+		Description:              o.Description,
+		DescriptionLocalizations: o.DescriptionLocalizations,
+		Required:                 o.Required,
+		Autocomplete:             o.Autocomplete,
+	}
+}
+
+func (o *ChatCommandAttachmentOption) Validate() (bool, error) {
+	return validateOption(o)
+}
+
 func validateOption(opt interface {
 	ApplicationCommandOption() *discordgo.ApplicationCommandOption
 },
