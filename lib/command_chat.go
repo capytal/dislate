@@ -181,7 +181,6 @@ type ChatCommandBooleanOption struct {
 	Description              string
 	DescriptionLocalizations map[discordgo.Locale]string
 	Required                 bool
-	Autocomplete             bool
 	Choices                  []*ChatCommandBooleanOptionChoice
 }
 
@@ -208,7 +207,6 @@ func (o *ChatCommandBooleanOption) ApplicationCommandOption() *discordgo.Applica
 		Description:              o.Description,
 		DescriptionLocalizations: o.DescriptionLocalizations,
 		Required:                 o.Required,
-		Autocomplete:             o.Autocomplete,
 		Choices:                  choices,
 	}
 }
@@ -223,7 +221,6 @@ type ChatCommandUserOption struct {
 	Description              string
 	DescriptionLocalizations map[discordgo.Locale]string
 	Required                 bool
-	Autocomplete             bool
 	Choices                  []*ChatCommandUserOptionChoice
 }
 
@@ -246,7 +243,6 @@ func (o *ChatCommandUserOption) ApplicationCommandOption() *discordgo.Applicatio
 		Description:              o.Description,
 		DescriptionLocalizations: o.DescriptionLocalizations,
 		Required:                 o.Required,
-		Autocomplete:             o.Autocomplete,
 		Choices:                  choices,
 	}
 }
@@ -261,7 +257,6 @@ type ChatCommandChannelOption struct {
 	Description              string
 	DescriptionLocalizations map[discordgo.Locale]string
 	Required                 bool
-	Autocomplete             bool
 	Choices                  []*ChatCommandChannelOptionChoice
 }
 
@@ -284,7 +279,6 @@ func (o *ChatCommandChannelOption) ApplicationCommandOption() *discordgo.Applica
 		Description:              o.Description,
 		DescriptionLocalizations: o.DescriptionLocalizations,
 		Required:                 o.Required,
-		Autocomplete:             o.Autocomplete,
 		Choices:                  choices,
 	}
 }
@@ -299,7 +293,6 @@ type ChatCommandRoleOption struct {
 	Description              string
 	DescriptionLocalizations map[discordgo.Locale]string
 	Required                 bool
-	Autocomplete             bool
 	Choices                  []*ChatCommandRoleOptionChoice
 }
 
@@ -322,7 +315,6 @@ func (o *ChatCommandRoleOption) ApplicationCommandOption() *discordgo.Applicatio
 		Description:              o.Description,
 		DescriptionLocalizations: o.DescriptionLocalizations,
 		Required:                 o.Required,
-		Autocomplete:             o.Autocomplete,
 		Choices:                  choices,
 	}
 }
@@ -337,7 +329,6 @@ type ChatCommandMentionableOption struct {
 	Description              string
 	DescriptionLocalizations map[discordgo.Locale]string
 	Required                 bool
-	Autocomplete             bool
 	Choices                  []*ChatCommandMentionableOptionChoice
 }
 
@@ -360,7 +351,6 @@ func (o *ChatCommandMentionableOption) ApplicationCommandOption() *discordgo.App
 		Description:              o.Description,
 		DescriptionLocalizations: o.DescriptionLocalizations,
 		Required:                 o.Required,
-		Autocomplete:             o.Autocomplete,
 		Choices:                  choices,
 	}
 }
@@ -421,7 +411,6 @@ type ChatCommandAttachmentOption struct {
 	Description              string
 	DescriptionLocalizations map[discordgo.Locale]string
 	Required                 bool
-	Autocomplete             bool
 }
 
 func (o *ChatCommandAttachmentOption) ApplicationCommandOption() *discordgo.ApplicationCommandOption {
@@ -432,7 +421,6 @@ func (o *ChatCommandAttachmentOption) ApplicationCommandOption() *discordgo.Appl
 		Description:              o.Description,
 		DescriptionLocalizations: o.DescriptionLocalizations,
 		Required:                 o.Required,
-		Autocomplete:             o.Autocomplete,
 	}
 }
 
