@@ -152,15 +152,9 @@ type ChatCommandIntegerOption struct {
 	DescriptionLocalizations map[discordgo.Locale]string
 	Required                 bool
 	Autocomplete             bool
-	Choices                  []*ChatCommandIntegerOptionChoice
+	Choices                  []*ChatCommandOptionChoice[int]
 	MinValue                 int
 	MaxValue                 int
-}
-
-type ChatCommandIntegerOptionChoice struct {
-	Name              string
-	NameLocalizations map[discordgo.Locale]string
-	Value             int
 }
 
 func (o *ChatCommandIntegerOption) ApplicationCommandOption() *discordgo.ApplicationCommandOption {
@@ -243,15 +237,9 @@ type ChatCommandNumberOption struct {
 	DescriptionLocalizations map[discordgo.Locale]string
 	Required                 bool
 	Autocomplete             bool
-	Choices                  []*ChatCommandNumberOptionChoice
+	Choices                  []*ChatCommandOptionChoice[float64]
 	MinValue                 float64
 	MaxValue                 float64
-}
-
-type ChatCommandNumberOptionChoice struct {
-	Name              string
-	NameLocalizations map[discordgo.Locale]string
-	Value             float64
 }
 
 func (o *ChatCommandNumberOption) ApplicationCommandOption() *discordgo.ApplicationCommandOption {
@@ -332,15 +320,9 @@ type ChatCommandStringOption struct {
 	DescriptionLocalizations map[discordgo.Locale]string
 	Required                 bool
 	Autocomplete             bool
-	Choices                  []*ChatCommandStringOptionChoice
+	Choices                  []*ChatCommandOptionChoice[string]
 	MinLength                int
 	MaxLength                int
-}
-
-type ChatCommandStringOptionChoice struct {
-	Name              string
-	NameLocalizations map[discordgo.Locale]string
-	Value             string
 }
 
 func (o *ChatCommandStringOption) ApplicationCommandOption() *discordgo.ApplicationCommandOption {
@@ -445,3 +427,12 @@ func validateOption(opt interface {
 
 	return true, nil
 }
+
+type (
+	optionTypes                            interface{ string | int | float64 }
+	ChatCommandOptionChoice[T optionTypes] struct {
+		Name              string
+		NameLocalizations map[discordgo.Locale]string
+		Value             T
+	}
+)
