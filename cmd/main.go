@@ -9,7 +9,7 @@ import (
 	"syscall"
 	"time"
 
-	"forge.capytal.company/capytal/dislate/bot"
+	"forge.capytal.company/capytal/dislate"
 	"forge.capytal.company/capytal/dislate/translator"
 
 	_ "github.com/tursodatabase/go-libsql"
@@ -69,12 +69,12 @@ func main() {
 		logger.Info("Connection to database closed", slog.String("file", *database_file))
 	}()
 
-	bot, err := bot.NewBot(*discord_token, db, translator.NewMockTranslator(), logger)
+	err = dislate.Run(*discord_token, dislate.RunOptions{
+		DB:         db,
+		Translator: translator.NewMockTranslator(),
+		Logger:     logger,
+	})
 	if err != nil {
-		logger.Error("Failed to create discord bot", slog.String("err", err.Error()))
-		return
-	}
-	if err := bot.Start(); err != nil {
 		logger.Error("Failed to start discord bot", slog.String("err", err.Error()))
 		return
 	}
@@ -82,7 +82,7 @@ func main() {
 	logger.Info("Discord bot started")
 
 	defer func() {
-		if err := bot.Stop(); err != nil {
+		if err := dislate.Stop(); err != nil {
 			logger.Error("Failed to stop discord bot", slog.String("err", err.Error()))
 			return
 		}
