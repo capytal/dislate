@@ -69,7 +69,7 @@ func main() {
 		logger.Info("Connection to database closed", slog.String("file", *database_file))
 	}()
 
-	err = dislate.Run(*discord_token, dislate.RunOptions{
+	err = dislate.Start(*discord_token, dislate.RunOptions{
 		DB:         db,
 		Translator: translator.NewMockTranslator(),
 		Logger:     logger,

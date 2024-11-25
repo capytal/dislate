@@ -16,10 +16,10 @@ type RunOptions struct {
 	Logger     *slog.Logger
 }
 
-func Run(token string, opts ...RunOptions) error {
+func Start(token string, opts ...RunOptions) error {
 	var err error
 
-	dislate, err = bot.New(token)
+	dislate, err = bot.Start(token)
 	if err != nil {
 		return err
 	}
@@ -27,5 +27,4 @@ func Run(token string, opts ...RunOptions) error {
 	return nil
 }
 
-func Stop() error {
-}
+func Stop() error { return dislate.Stop() }

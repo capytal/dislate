@@ -5,11 +5,10 @@ import (
 )
 
 type Bot struct {
-	session  *discordgo.Session
-	commands []Command
+	session *discordgo.Session
 }
 
-func New(token string) (*Bot, error) {
+func Start(token string) (*Bot, error) {
 	s, err := discordgo.New("Bot " + token)
 	if err != nil {
 		return nil, err
@@ -17,17 +16,21 @@ func New(token string) (*Bot, error) {
 
 	s.Identify.Intents = discordgo.MakeIntent(discordgo.IntentsAllWithoutPrivileged)
 
-	return &Bot{
-		session:  s,
-		commands: []Command{},
-	}, nil
-}
-
-func (b *Bot) Start() error {
-	if err := b.session.Open(); err != nil {
-		return err
+	if err := s.Open(); err != nil {
+		return nil, err
 	}
 
+	bot := &Bot{
+		session:                s,
+	}
+
+	return bot, nil
+}
+
+func (b *Bot) Stop() error {
+	if err := b.session.Close(); err != nil {
+		return err
+	}
 	return nil
 }
 
